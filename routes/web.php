@@ -1,4 +1,5 @@
 <?php
+<<<<<<< HEAD
 use App\Http\Controllers\HomeController;
 use Illuminate\Support\Facades\Route;
 Route::get('/', [HomeController::class, 'index'])->name('home');
@@ -11,3 +12,11 @@ Route::get('/faq-kontak', fn () => redirect()->route('home', ['#kontak']))->name
 // Authentication routes
 Route::get('/masuk', fn () => view('auth.login'))->name('login');
 Route::get('/daftar', fn () => view('auth.register'))->name('register');
+=======
+
+use Illuminate\Support\Facades\Route;
+
+Route::get('/', function () {
+    return view('welcome');
+});
+>>>>>>> 5e487bfe6778140a78060d1f552beee84c7546ba
