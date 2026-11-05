@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 44" fill="none" width="160" height="44">
+  <!-- Pill Background -->
+  <rect width="160" height="44" rx="22" fill="#D32F2F"/>
+  
+  <!-- Left Soundwaves / Broadcast Arcs -->
+  <g stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none">
+    <path d="M 12 22 A 12 12 0 0 1 12 21.9" stroke-width="3"/>
+    <path d="M 16 16 A 9 9 0 0 0 16 28"/>
+    <path d="M 21 13 A 13 13 0 0 0 21 31"/>
+    <path d="M 26 10 A 17 17 0 0 0 26 34"/>
+  </g>
+  <circle cx="12" cy="22" r="2" fill="#FFFFFF"/>
+
+  <!-- Brand Typography -->
+  <!-- EMPIRISE -->
+  <text x="80" y="22" fill="#FFFFFF" font-family="'Inter', system-ui, -apple-system, sans-serif" font-size="14" font-weight="900" letter-spacing="1.5" text-anchor="middle">EMPIRISE</text>
+  <!-- JALAN - JALAN -->
+  <text x="80" y="32" fill="#FFFFFF" font-family="'Inter', system-ui, -apple-system, sans-serif" font-size="7" font-weight="700" letter-spacing="2.5" text-anchor="middle">JALAN - JALAN</text>
+
+  <!-- Right Soundwaves / Broadcast Arcs -->
+  <g stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" fill="none">
+    <path d="M 144 16 A 9 9 0 0 1 144 28"/>
+    <path d="M 139 13 A 13 13 0 0 1 139 31"/>
+    <path d="M 134 10 A 17 17 0 0 1 134 34"/>
+  </g>
+  <circle cx="148" cy="22" r="2" fill="#FFFFFF"/>
+</svg>
