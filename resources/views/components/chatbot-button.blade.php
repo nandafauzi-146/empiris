@@ -1,1 +1,1 @@
-{{-- Tombol ini digantikan oleh assistant-widget --}}
+<x-assistant-widget />

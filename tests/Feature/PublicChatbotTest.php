@@ -112,9 +112,16 @@ it('applies guardrail to replace any price quote with standard disclaimer', func
         ->and($response->json('reply'))->toContain('Harga disusun oleh tim Empirise dalam penawaran');
 });
 
-it('returns deterministic fallback when OpenAI fails or times out', function () {
+it('returns intelligent knowledge base answer when OpenAI fails or times out', function () {
     Http::fake([
         'https://api.openai.com/v1/chat/completions' => Http::response(['error' => 'Rate limit'], 500),
+    ]);
+
+    ChatbotFaq::create([
+        'kata_kunci' => ['armada', 'bus'],
+        'pertanyaan' => 'Kendaraan apa saja yang tersedia untuk rental armada?',
+        'jawaban' => 'Kami menyediakan Big Bus, Medium Bus, dan Minibus dengan fasilitas lengkap.',
+        'aktif' => true,
     ]);
 
     $response = $this->postJson(route('chatbot.chat'), [
@@ -123,15 +130,15 @@ it('returns deterministic fallback when OpenAI fails or times out', function () 
 
     $response->assertOk()
         ->assertJson([
-            'answered' => false,
+            'answered' => true,
         ]);
 
-    expect($response->json('reply'))->toContain('Terima kasih atas pertanyaan Anda. Tim Empirise siap membantu');
+    expect($response->json('reply'))->toContain('Big Bus, Medium Bus');
 
     $this->assertDatabaseHas('chatbot_log', [
         'mode' => 'publik',
         'ringkasan_pertanyaan' => 'Apakah armada bus tersedia?',
-        'terjawab' => false,
+        'terjawab' => true,
         'status' => 'error',
     ]);
 });

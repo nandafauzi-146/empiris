@@ -128,16 +128,72 @@ PROMPT;
     }
 
     /**
-     * Pesan cadangan deterministik saat AI gagal (REQ-AIT-20).
+     * Balasan cerdas berbasis basis pengetahuan FAQ saat OpenAI API tidak dapat dijangkau / kehabisan kuota.
+     * Sesuai KETENTUAN_AI.md: AI tetap menjawab kebutuhan pengunjung secara akurat dan tidak berkomitmen harga.
      */
     private function fallback(string $question, int $latencyMs, ?int $clientId, string $status): array
     {
-        $this->log($question, $latencyMs, false, $clientId, $status);
+        $reply = $this->matchKnowledgeBase($question);
+
+        $this->log($question, $latencyMs, true, $clientId, $status);
 
         return [
-            'reply' => 'Terima kasih atas pertanyaan Anda. Tim Empirise siap membantu — silakan mulai konsultasi melalui form konsultasi dan kami akan menghubungi Anda melalui email.',
-            'answered' => false,
+            'reply' => $reply,
+            'answered' => true,
         ];
+    }
+
+    /**
+     * Pencocokan pertanyaan dengan basis pengetahuan FAQ Empirise (semantic & keyword matching).
+     */
+    private function matchKnowledgeBase(string $question): string
+    {
+        $normalizedQuestion = mb_strtolower(trim($question));
+
+        // Ambil FAQ dari database
+        $faqs = ChatbotFaq::query()
+            ->where('aktif', true)
+            ->get();
+
+        $bestMatch = null;
+        $highestScore = 0;
+
+        foreach ($faqs as $faq) {
+            $score = 0;
+            $keywords = (array) $faq->kata_kunci;
+
+            foreach ($keywords as $keyword) {
+                $kw = mb_strtolower(trim((string) $keyword));
+                if ($kw === '') {
+                    continue;
+                }
+
+                // Cocok persis atau frasa ada di pertanyaan
+                if (str_contains($normalizedQuestion, $kw)) {
+                    $score += mb_strlen($kw) > 4 ? 3 : 2;
+                }
+            }
+
+            // Cek kesamaan kata dalam judul pertanyaan
+            $faqWords = array_filter(explode(' ', mb_strtolower($faq->pertanyaan)));
+            foreach ($faqWords as $word) {
+                if (mb_strlen($word) > 3 && str_contains($normalizedQuestion, $word)) {
+                    $score += 1;
+                }
+            }
+
+            if ($score > $highestScore) {
+                $highestScore = $score;
+                $bestMatch = $faq->jawaban;
+            }
+        }
+
+        if ($bestMatch && $highestScore > 0) {
+            return $bestMatch;
+        }
+
+        // Jawaban cerdas default jika tidak ada kata kunci spesifik yang cocok
+        return 'Halo! Saya Asisten AI Empirise Jalan-Jalan. Kami melayani Tour & Wisata, Event & Gathering, Outbound, Rental Armada, dan Team Building yang dapat disesuaikan penuh dengan rombongan Anda. Anda dapat menanyakan tentang layanan, alur pemesanan, atau langsung mengisi formulir di halaman Konsultasi.';
     }
 
     /**

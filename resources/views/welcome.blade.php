@@ -4,6 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="description" content="Jelajahi destinasi pilihan dan rancang perjalanan Indonesia bersama Empirise.">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>Empirise — Jelajahi Liburan Alam Premium</title>
 

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Empirise Jalan-Jalan - Jelajahi Liburan Alam & Budaya Premium Nusantara">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Empirise Jalan-Jalan - Liburan Alam & Budaya Premium')</title>
 
     <!-- Google Fonts: Inter -->
