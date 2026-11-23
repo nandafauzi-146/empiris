@@ -5,7 +5,6 @@ use App\Http\Controllers\Account\ConsultationReplyController;
 use App\Http\Controllers\Account\OfferResponseController;
 use App\Http\Controllers\Account\ProfileController;
 use App\Http\Controllers\Admin\CalendarController as AdminCalendarController;
-use App\Http\Controllers\Admin\ChatbotController as AdminChatbotController;
 use App\Http\Controllers\Admin\ConsultationController as AdminConsultationController;
 use App\Http\Controllers\Admin\ContentController as AdminContentController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -215,14 +214,4 @@ Route::prefix('admin')
         Route::patch('/pengguna/{user}/aktif', [AdminUserController::class, 'toggleActive'])
             ->whereNumber('user')
             ->name('users.active');
-        Route::get('/chatbot', [AdminChatbotController::class, 'index'])->name('chatbot.index');
-        Route::post('/chatbot/faq', [AdminChatbotController::class, 'storeFaq'])->name('chatbot.faq.store');
-        Route::patch('/chatbot/faq/{faq}', [AdminChatbotController::class, 'updateFaq'])
-            ->whereNumber('faq')
-            ->name('chatbot.faq.update');
-        Route::delete('/chatbot/faq/{faq}', [AdminChatbotController::class, 'destroyFaq'])
-            ->whereNumber('faq')
-            ->name('chatbot.faq.destroy');
-        Route::patch('/chatbot/pengaturan', [AdminChatbotController::class, 'updateSettings'])
-            ->name('chatbot.settings');
     });

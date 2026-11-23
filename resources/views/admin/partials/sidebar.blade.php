@@ -40,7 +40,6 @@
             ['admin.content.*', 'admin.content.index', 'Konten Web', 'file'],
             ['admin.reports.*', 'admin.reports.index', 'Laporan', 'chart'],
             ['admin.users.*', 'admin.users.index', 'Pengguna', 'users'],
-            ['admin.chatbot.*', 'admin.chatbot.index', 'Chatbot AI', 'bot'],
         ] as [$pattern, $route, $label, $icon])
             <a href="{{ route($route) }}" @class([
                 'admin-nav-link flex min-h-12 items-center gap-3 rounded-full px-4 py-3 text-[15px] font-medium transition-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',

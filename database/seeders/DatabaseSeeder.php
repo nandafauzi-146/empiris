@@ -35,6 +35,5 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call(WebsiteContentSeeder::class);
-        $this->call(ChatbotFaqSeeder::class);
     }
 }

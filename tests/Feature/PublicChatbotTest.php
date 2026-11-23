@@ -1,9 +1,9 @@
 <?php
 
-use App\Models\ChatbotFaq;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Schema;
 
 uses(LazilyRefreshDatabase::class);
 
@@ -19,7 +19,7 @@ it('rejects an empty message or invalid input', function () {
         ->assertJsonValidationErrors(['message']);
 });
 
-it('responds to user questions via OpenAI and logs the conversation', function () {
+it('responds to user questions via OpenAI without saving conversation to database', function () {
     Http::fake([
         'https://api.openai.com/v1/chat/completions' => Http::response([
             'choices' => [
@@ -30,13 +30,6 @@ it('responds to user questions via OpenAI and logs the conversation', function (
                 ],
             ],
         ], 200),
-    ]);
-
-    ChatbotFaq::create([
-        'kata_kunci' => ['layanan', 'paket'],
-        'pertanyaan' => 'Layanan apa saja yang ada?',
-        'jawaban' => 'Tour, Gathering, Outbound, Rental Armada, Team Building.',
-        'aktif' => true,
     ]);
 
     $response = $this->postJson(route('chatbot.chat'), [
@@ -51,16 +44,12 @@ it('responds to user questions via OpenAI and logs the conversation', function (
 
     expect($response->json('reply'))->toContain('Empirise menyediakan layanan Tour');
 
-    $this->assertDatabaseHas('chatbot_log', [
-        'mode' => 'publik',
-        'ringkasan_pertanyaan' => 'Layanan apa saja yang tersedia di Empirise?',
-        'terjawab' => true,
-        'status' => 'ok',
-        'id_klien' => null,
-    ]);
+    // Pastikan tidak ada tabel log percakapan yang menyimpan data ke database (hemat storage)
+    expect(Schema::hasTable('chatbot_log'))->toBeFalse();
+    expect(Schema::hasTable('faq_chatbot'))->toBeFalse();
 });
 
-it('records authenticated client id in chatbot logs', function () {
+it('answers authenticated client questions without storing conversation history', function () {
     Http::fake([
         'https://api.openai.com/v1/chat/completions' => Http::response([
             'choices' => [
@@ -79,13 +68,10 @@ it('records authenticated client id in chatbot logs', function () {
         ->postJson(route('chatbot.chat'), [
             'message' => 'Bagaimana cara mulai konsultasi?',
         ])
-        ->assertOk();
-
-    $this->assertDatabaseHas('chatbot_log', [
-        'mode' => 'publik',
-        'id_klien' => $client->id,
-        'terjawab' => true,
-    ]);
+        ->assertOk()
+        ->assertJson([
+            'answered' => true,
+        ]);
 });
 
 it('applies guardrail to replace any price quote with standard disclaimer', function () {
@@ -112,20 +98,13 @@ it('applies guardrail to replace any price quote with standard disclaimer', func
         ->and($response->json('reply'))->toContain('Harga disusun oleh tim Empirise dalam penawaran');
 });
 
-it('returns intelligent knowledge base answer when OpenAI fails or times out', function () {
+it('returns intelligent in-memory knowledge base answer when OpenAI fails or quota is exhausted', function () {
     Http::fake([
         'https://api.openai.com/v1/chat/completions' => Http::response(['error' => 'Rate limit'], 500),
     ]);
 
-    ChatbotFaq::create([
-        'kata_kunci' => ['armada', 'bus'],
-        'pertanyaan' => 'Kendaraan apa saja yang tersedia untuk rental armada?',
-        'jawaban' => 'Kami menyediakan Big Bus, Medium Bus, dan Minibus dengan fasilitas lengkap.',
-        'aktif' => true,
-    ]);
-
     $response = $this->postJson(route('chatbot.chat'), [
-        'message' => 'Apakah armada bus tersedia?',
+        'message' => 'Kendaraan apa saja yang tersedia untuk rental armada bus?',
     ]);
 
     $response->assertOk()
@@ -133,12 +112,6 @@ it('returns intelligent knowledge base answer when OpenAI fails or times out', f
             'answered' => true,
         ]);
 
-    expect($response->json('reply'))->toContain('Big Bus, Medium Bus');
-
-    $this->assertDatabaseHas('chatbot_log', [
-        'mode' => 'publik',
-        'ringkasan_pertanyaan' => 'Apakah armada bus tersedia?',
-        'terjawab' => true,
-        'status' => 'error',
-    ]);
+    expect($response->json('reply'))->toContain('Big Bus')
+        ->and($response->json('reply'))->toContain('Medium Bus');
 });

@@ -23,13 +23,9 @@ class ChatbotPublicController extends Controller
             'message.max' => 'Pesan maksimal 500 karakter.',
         ]);
 
-        // R1: id_klien dari Auth::user() jika login, bukan dari input
-        $clientId = $request->user()?->getAuthIdentifier();
-
         $result = $chatbot->chat(
             userMessage: $validated['message'],
             history: $validated['history'] ?? [],
-            clientId: is_int($clientId) ? $clientId : null,
         );
 
         return response()->json([
