@@ -994,6 +994,25 @@ button {
     color: white;
 }
 
+.assistant-header-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-three);
+}
+
+.assistant-header-icon {
+    width: 2rem;
+    height: 2rem;
+    filter: brightness(0) invert(1);
+}
+
+.assistant-subtitle {
+    margin: 0;
+    font-size: var(--text-caption);
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 400;
+}
+
 .assistant-title {
     display: inline-flex;
     align-items: center;
@@ -1041,6 +1060,80 @@ button {
     overflow-y: auto;
     padding: var(--spacing-assistant-body);
     background: var(--color-assistant-surface);
+}
+
+/* Chat bubbles */
+.assistant-bubble {
+    max-width: 88%;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.assistant-bubble-ai {
+    align-self: flex-start;
+}
+
+.assistant-bubble-user {
+    align-self: flex-end;
+}
+
+.assistant-bubble-label {
+    font-size: var(--text-caption);
+    font-weight: 600;
+    color: var(--color-copy-muted);
+    padding: 0 var(--spacing-two);
+}
+
+.assistant-bubble-ai p {
+    padding: var(--spacing-assistant-message-y) var(--spacing-assistant-message-x);
+    border: 1px solid var(--color-line);
+    border-radius: 0 var(--radius-panel) var(--radius-panel) var(--radius-panel);
+    background: white;
+    font-size: var(--text-body-small);
+    line-height: var(--leading-assistant);
+    margin: 0;
+}
+
+.assistant-bubble-user p {
+    padding: var(--spacing-assistant-message-y) var(--spacing-assistant-message-x);
+    border-radius: var(--radius-panel) 0 var(--radius-panel) var(--radius-panel);
+    background: var(--color-brand);
+    color: white;
+    font-size: var(--text-body-small);
+    line-height: var(--leading-assistant);
+    margin: 0;
+}
+
+/* Typing indicator */
+.assistant-typing {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: var(--spacing-two) var(--spacing-assistant-body);
+    background: var(--color-assistant-surface);
+}
+
+.assistant-typing span {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--color-brand);
+    animation: assistant-bounce 1.2s infinite;
+}
+
+.assistant-typing span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.assistant-typing span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes assistant-bounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+    40% { transform: scale(1); opacity: 1; }
 }
 
 .assistant-message {
@@ -1128,6 +1221,10 @@ button {
 .assistant-toggle img {
     width: var(--spacing-icon-medium);
     height: var(--spacing-icon-medium);
+}
+
+.assistant-toggle [data-chat-open-icon] {
+    filter: brightness(0) invert(1);
 }
 
 .assistant-toggle [data-chat-close-icon] {
@@ -3169,6 +3266,42 @@ button {
     cursor: pointer;
 }
 
+.consultation-form-main {
+    display: contents;
+}
+
+.consultation-login-nudge {
+    grid-column: 1 / -1;
+    padding: var(--spacing-three) var(--spacing-four);
+    border-radius: var(--radius-card);
+    background: var(--color-brand-soft);
+    font-size: var(--text-body-small);
+}
+
+.consultation-login-nudge p {
+    margin: 0;
+}
+
+.consultation-login-nudge a {
+    color: var(--color-brand);
+    font-weight: 600;
+    text-decoration: underline;
+}
+
+.consultation-success-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-bottom: var(--spacing-three);
+    border-radius: 50%;
+    background: var(--color-brand);
+    color: #fff;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
 .consultation-aside h2 {
     margin: 0 0 var(--spacing-three);
     font-size: var(--text-card-title);
@@ -3183,6 +3316,208 @@ button {
 .consultation-aside a {
     color: var(--color-brand);
     font-weight: 500;
+}
+
+.consultation-aside-block {
+    padding: var(--spacing-five);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-panel);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+}
+
+.consultation-aside-steps {
+    list-style: none;
+    padding: 0;
+    margin: var(--spacing-four) 0 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-three);
+}
+
+.consultation-aside-steps li {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-three);
+    font-size: var(--text-body-small);
+    color: var(--color-copy);
+}
+
+.consultation-step-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 50%;
+    background: var(--color-brand-soft);
+    color: var(--color-brand);
+    font-size: var(--text-caption);
+    font-weight: 700;
+}
+
+.consultation-aside-cta {
+    margin-top: var(--spacing-four);
+    padding: var(--spacing-five);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-panel);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+}
+
+.consultation-aside-cta p {
+    color: var(--color-copy);
+    font-size: var(--text-body-small);
+    line-height: var(--leading-copy);
+    margin: 0 0 var(--spacing-three);
+}
+
+.consultation-aside-cta p:last-child {
+    margin-top: var(--spacing-three);
+    margin-bottom: 0;
+}
+
+.consultation-aside-login {
+    display: inline-block;
+    padding: var(--spacing-two) var(--spacing-four);
+    border: 2px solid var(--color-brand);
+    border-radius: var(--radius-pill);
+    color: var(--color-brand);
+    font-weight: 600;
+    font-size: var(--text-body-small);
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+}
+
+.consultation-aside-login:hover {
+    background: var(--color-brand);
+    color: #fff;
+}
+
+.rental-details-fieldset {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-form-gap);
+    padding: var(--spacing-four);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-surface-tint, var(--color-brand-soft));
+}
+
+.rental-details-legend {
+    font-weight: 600;
+    font-size: var(--text-body-small);
+    color: var(--color-copy);
+    padding: 0 var(--spacing-two);
+}
+
+.rental-disclaimer {
+    margin: 0;
+    font-size: var(--text-caption);
+    color: var(--color-copy-muted);
+}
+
+/* Account consultation create layout */
+.account-consultation-create-layout {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-six);
+    padding: var(--spacing-six);
+    max-width: 46rem;
+}
+
+.account-consultation-identity {
+    padding: var(--spacing-four);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-card);
+    background: var(--color-brand-soft);
+}
+
+.account-consultation-identity-label {
+    margin: 0 0 var(--spacing-two);
+    font-size: var(--text-caption);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-copy-muted);
+}
+
+.account-consultation-identity-name {
+    margin: 0;
+    font-size: var(--text-body);
+    font-weight: 600;
+    color: var(--color-ink);
+}
+
+.account-consultation-identity-email {
+    margin: 0;
+    font-size: var(--text-body-small);
+    color: var(--color-copy-muted);
+}
+
+.account-consultation-identity-note {
+    margin: var(--spacing-two) 0 0;
+    font-size: var(--text-caption);
+    color: var(--color-copy-muted);
+}
+
+.account-consultation-identity-note a {
+    color: var(--color-brand);
+    text-decoration: underline;
+}
+
+.account-consultation-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-form-gap);
+    padding: var(--spacing-six);
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-panel);
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+}
+
+.account-consultation-form .form-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--spacing-form-gap);
+}
+
+.account-consultation-form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-two);
+    margin-top: var(--spacing-two);
+}
+
+.account-form-error-summary {
+    padding: var(--spacing-three) var(--spacing-four);
+    border: 1px solid #f56565;
+    border-radius: var(--radius-card);
+    background: #fff5f5;
+    font-size: var(--text-body-small);
+    color: #c53030;
+}
+
+.account-form-error-summary p {
+    margin: 0 0 var(--spacing-two);
+}
+
+.account-form-error-summary ul {
+    margin: 0;
+    padding-left: var(--spacing-four);
+}
+
+.account-breadcrumb-link {
+    color: var(--color-copy-muted);
+    font-size: var(--text-body-small);
+    text-decoration: none;
+}
+
+.account-breadcrumb-link:hover {
+    color: var(--color-brand);
 }
 
 .listing-controls {

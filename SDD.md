@@ -5,7 +5,7 @@
 |---|---|
 | **Versi** | 1.0 (Draft) |
 | **Tanggal** | 6 November 2026 |
-| **Stack** | Laravel 13 (PHP 8.3 sampai 8.5), MySQL 8 / MariaDB 10.6+, Blade + Alpine.js + Tailwind, Laravel AI SDK |
+| **Stack** | Laravel 13 (PHP 8.3 sampai 8.5), MySQL 8 / MariaDB 10.6+, Blade + Alpine.js + Tailwind, Filament 5, Laravel AI SDK |
 | **Dokumen terkait** | `PRD_Empirise_Jalan-Jalan.md`, `SRS_Empirise_Jalan-Jalan.md`, `SYSTEM_ARCHITECTURE.md`, `analsis_pweb_empiris.docx` |
 
 ---
@@ -19,7 +19,7 @@ SDD ini menjabarkan rancangan terperinci yang langsung dapat diimplementasikan: 
 ### 1.2 Catatan Penting Pemakaian
 
 1. **Tabel dasar.** Nama dan kolom final 20 tabel dasar mengikuti analisis Bagian 9. Bagian 3 memuat kolom minimum yang dibutuhkan fitur di SRS. Jika analisis memakai nama lain, ikuti analisis dan petakan.
-2. **Kode contoh** bersifat ilustratif untuk menunjukkan rancangan. Sesuaikan dengan dokumentasi resmi versi Laravel dan Laravel AI SDK yang terpasang. Versi `laravel/ai` dikunci di `composer.json`.
+2. **Kode contoh** bersifat ilustratif untuk menunjukkan rancangan. Sesuaikan dengan dokumentasi resmi versi Laravel, Filament, dan Laravel AI SDK yang terpasang. Versi `laravel/ai` dikunci di `composer.json`.
 3. **Parameter bisnis** (batas, ambang, hari pengingat) dipusatkan di `config/empirise.php` (Bagian 14), bukan ditulis langsung di kode.
 
 ### 1.3 Konvensi
@@ -45,6 +45,8 @@ SDD ini menjabarkan rancangan terperinci yang langsung dapat diimplementasikan: 
 | D-08 | Satu endpoint chat per mode. Mode ditentukan server dari status login | Pengguna tidak dapat memilih mode akun |
 | D-09 | Parameter bisnis di `config/empirise.php` | Dapat diatur tanpa mengubah kode |
 | D-10 | Respons chat berupa daftar blok (`blocks`) bertipe | Antarmuka merender kartu secara seragam |
+| D-11 | Percakapan klien dan admin memakai tabel `balasan_konsultasi` dengan antarmuka chat dan polling berkala | Terasa seperti chat tanpa infrastruktur real-time. Dapat ditingkatkan ke WebSocket |
+| D-12 | Klien mengunggah bukti, admin memverifikasi (termin `menunggu_verifikasi` ke `lunas`) | Mengurangi kerja admin dan klien tidak menunggu admin menginput |
 
 ---
 
@@ -92,10 +94,6 @@ Semua tabel InnoDB, `utf8mb4`, memiliki `created_at` dan `updated_at` kecuali di
 | `tujuan` | VARCHAR(255) NULL | |
 | `jumlah_peserta`, `durasi_hari` | SMALLINT UNSIGNED NULL | |
 | `tgl_rencana` | DATE NULL | |
-| `jenis_kendaraan` | VARCHAR(30) NULL | Preferensi `Mobil`, `Minibus`, `Bus`, atau `Belum menentukan`; khusus rental |
-| `lokasi_jemput` | VARCHAR(255) NULL | Wajib untuk permintaan rental |
-| `jam_jemput` | TIME NULL | Perkiraan waktu lokal |
-| `tanggal_kembali` | DATE NULL | Tidak lebih awal dari `tgl_rencana` bila keduanya diisi |
 | `minat` | JSON NULL | |
 | `kebutuhan` | TEXT | Cerita klien |
 | `preferensi_json` | JSON NULL | Hasil ekstraksi |
@@ -105,7 +103,7 @@ Semua tabel InnoDB, `utf8mb4`, memiliki `created_at` dan `updated_at` kecuali di
 
 Indeks: `(id_klien, status)`, `(status, updated_at)`, `(email_kontak)`.
 
-**`balasan_konsultasi`**: `id_balasan`, `id_konsultasi` FK (cascade), `pengirim` ENUM('klien','admin'), `id_pengirim` FK NULL, `isi` TEXT, `terkirim_email` BOOLEAN.
+**`balasan_konsultasi`**: `id_balasan`, `id_konsultasi` FK (cascade), `pengirim` ENUM('klien','admin','sistem'), `id_pengirim` FK NULL, `isi` TEXT, `dibaca_at` TIMESTAMP NULL, `terkirim_email` BOOLEAN. Pesan `sistem` dibuat otomatis (penawaran dikirim, disetujui, direvisi).
 
 **`itinerary_draft`**
 
@@ -138,9 +136,9 @@ Indeks: `(id_klien, status)`, `(status, updated_at)`, `(email_kontak)`.
 
 **`proyek`**: `id_proyek`, `id_penawaran` **UNIQUE** FK, `id_konsultasi` FK, `id_klien` FK, `nama`, `tgl_mulai`, `tgl_selesai`, `status` (`terjadwal`, `berjalan`, `selesai`, `batal`), `total_nilai` BIGINT, `catatan` NULL. Indeks `(tgl_mulai)`, `(status)`.
 
-**`termin_pembayaran`**: `id_termin`, `id_proyek` FK, `nama` (DP, Pelunasan), `nominal` BIGINT, `jatuh_tempo` DATE, `status` (`belum`, `sebagian`, `lunas`; dihitung dari pembayaran).
+**`termin_pembayaran`**: `id_termin`, `id_proyek` FK, `nama` (DP, Pelunasan), `nominal` BIGINT, `jatuh_tempo` DATE, `status` (`belum_bayar`, `menunggu_verifikasi`, `lunas`). Satu termin memiliki satu pembayaran. Hanya admin yang dapat mengubah status menjadi `lunas`.
 
-**`pembayaran`**: `id_pembayaran`, `id_termin` FK, `nominal` BIGINT, `tgl_bayar` DATE, `bukti_path` NULL, `dicatat_oleh` FK users, `catatan` NULL.
+**`pembayaran`**: `id_pembayaran`, `id_termin` FK UNIQUE, `nominal` BIGINT, `tgl_bayar` DATE, `bukti_path` NULL, `diunggah_oleh` ENUM('klien','admin'), `id_pengunggah` FK users, `diverifikasi_oleh` FK users NULL, `diverifikasi_at` TIMESTAMP NULL, `catatan` NULL.
 
 **`testimoni`**: `id_testimoni`, `id_proyek` **UNIQUE** FK, `id_klien` FK, `rating` TINYINT (1 sampai 5), `komentar` TEXT, `status` (`menunggu`, `tampil`, `disembunyikan`).
 
@@ -182,6 +180,12 @@ Indeks: `(id_klien, status)`, `(status, updated_at)`, `(email_kontak)`.
 
 Kunci idempotensi: **UNIQUE** `(id_konsultasi, jenis, referensi, ke_email)`. Indeks `(status, jadwal_kirim)`.
 
+**`harga_default`**: `id`, `nama_item`, `satuan`, `harga_satuan` BIGINT, `id_layanan` FK NULL, `aktif`. Dipakai `PenawaranService::buatDariItinerary` untuk mengisi harga satuan awal. Admin selalu dapat mengubahnya sebelum mengirim.
+
+**`penawaran_tautan`**: `id`, `id_penawaran` FK, `token` VARCHAR(64) UNIQUE, `email_tujuan`, `kedaluwarsa_at`, `dibuat_oleh` FK. Tautan baca-saja untuk atasan klien.
+
+Tambahan pada `konsultasi`: `sumber` ENUM('pemesanan','konsultasi','rencana_ai'), `organisasi` VARCHAR(150) NULL, `rentang_budget` VARCHAR(30) NULL.
+
 ### 3.2 Aturan Integritas
 
 | Aturan | Mekanisme |
@@ -204,7 +208,7 @@ Kunci idempotensi: **UNIQUE** `(id_konsultasi, jenis, referensi, ke_email)`. Ind
 7. `draf_chat`, `chatbot_log`, `rekomendasi_log`
 8. `email_template`, `email_log`
 9. FK `konsultasi.id_itinerary`
-10. Seeder: layanan (5), wilayah, kategori, destinasi contoh, `faq_chatbot`, `email_template` (11 jenis), akun admin awal
+10. Seeder: layanan (5), wilayah, kategori, destinasi contoh, `faq_chatbot`, `email_template` (14 jenis), akun admin awal
 
 ---
 
@@ -247,6 +251,8 @@ Enum status di `app/Enums`: `KonsultasiStatus`, `PenawaranStatus`, `ProyekStatus
 | `GET /rekomendasi`, `POST /rekomendasi` | `rekomendasi.*` | `Publik\RekomendasiController` | throttle |
 | `GET /rencana` | `rencana` | `Publik\RencanaController@index` | |
 | `GET /konsultasi/baru`, `POST /konsultasi` | `konsultasi.*` | `Publik\KonsultasiController@create/store` | throttle |
+| `GET /pesan`, `POST /pesan` | `pesan.*` | `Publik\PesanController@create/store` | throttle (menunggu TBD-12) |
+| `GET /p/{token}` | `penawaran.tautan` | `Publik\PenawaranTautanController@show` | throttle, token valid |
 | `/masuk`, `/daftar`, `/lupa-password`, `/reset-password` | | Breeze | `guest` |
 | `GET /akun` | `akun.beranda` | `Akun\BerandaController` | `auth` |
 | `GET /akun/konsultasi`, `/akun/konsultasi/{konsultasi}` | `akun.konsultasi.*` | `Akun\KonsultasiController` | `auth`, `can:view,konsultasi` |
@@ -274,6 +280,11 @@ Kunci pengikatan rute (`{konsultasi}`) memakai primary key. Akses data milik kli
 | `GET /api/itinerary/{id}` | `Api\ItineraryController@show` | pemilik sesi atau klien |
 | `POST /api/itinerary/{id}/kirim` | `Api\ItineraryController@kirim` | `throttle:konsultasi` |
 | `POST /api/penawaran/{penawaran}/respons` | `Api\PenawaranResponsController@store` | `auth`, `can:tanggapi,penawaran` |
+| `POST /api/penawaran/{penawaran}/teruskan` | `Api\PenawaranTautanController@store` | `auth`, `can:view,penawaran`, throttle |
+| `GET /api/konsultasi/{konsultasi}/pesan?setelah={id}` | `Api\PesanKonsultasiController@index` | `auth`, `can:view,konsultasi` (polling) |
+| `POST /api/konsultasi/{konsultasi}/pesan` | `Api\PesanKonsultasiController@store` | `auth`, `can:view,konsultasi`, throttle |
+| `POST /api/termin/{termin}/bukti` | `Api\TerminBuktiController@store` | `auth`, `can:unggahBukti,termin` |
+| `POST /admin/termin/{termin}/verifikasi` | `Admin\TerminController@verifikasi` | `role:admin` |
 
 ### 5.3 Rate Limiter (didaftarkan di `AppServiceProvider`)
 
@@ -290,22 +301,7 @@ Respons 429 membawa header `Retry-After`.
 
 ### 5.4 Admin
 
-Panel admin menggunakan Blade, Alpine.js, dan Tailwind pada `/admin`, dilindungi middleware `auth` dan `role:admin`. Rute dan halaman:
-
-| Menu | Rute | Controller |
-|---|---|---|
-| Dashboard | `GET /admin` | `Admin\DashboardController` |
-| Konsultasi | `GET /admin/konsultasi`, detail, dan balasan | `Admin\ConsultationController` |
-| Proyek dan pembayaran | `GET/POST /admin/proyek`, status, pembayaran termin | `Admin\ProjectController` |
-| Kalender | `GET/POST /admin/kalender` | `Admin\CalendarController` |
-| Konten web | `GET/POST/PATCH/DELETE /admin/konten` | `Admin\ContentController` |
-| Laporan | `GET /admin/laporan` dan ekspor CSV/XLSX | `Admin\ReportController` |
-| Pengguna | `GET/POST/PATCH /admin/pengguna` | `Admin\UserController` |
-| Chatbot AI | `GET/POST/PATCH/DELETE /admin/chatbot` | `Admin\ChatbotController` |
-
-Audit untuk perubahan penting disimpan pada `audit_log` dalam transaksi yang sama dengan perubahan bisnis. Data konten yang aktif dan berstatus `tampil` dipakai untuk mengganti bagian terkait pada situs publik; metadata kategori disimpan sebagai objek JSON. `WebsiteContentSeeder` mengimpor konten awal yang sebelumnya ditulis di beranda, halaman layanan, portofolio, klien, FAQ, dan tim ke `konten_admin` secara idempoten tanpa menimpa perubahan admin. Data awal bertanda `CONTOH` sampai diverifikasi biro. Setelah data awal tersedia, CMS menjadi sumber untuk bagian-bagian tersebut, termasuk slider dan katalog destinasi. Pratinjau konten tersedia dalam dialog sebelum simpan atau pembaruan dan memakai struktur serta kelas visual kartu publik untuk kategori terkait; perubahan pada input, metadata, ikon, dan gambar langsung tercermin tanpa mengirim perubahan ke server.
-
-Fondasi panel mencakup model penawaran, draf dan pengiriman penawaran, tanggapan klien, serta persetujuan deal atomik. Versi lama tetap tersimpan dan revisi membuat versi baru. Moderasi testimoni serta konfigurasi template email tetap mengikuti tahapan implementasi berikutnya.
+Panel Filament di `/admin` dengan guard peran `admin`. Resource: `KonsultasiResource` (relation manager balasan, panel Pemahaman Kebutuhan, panel Itinerary AI, aksi **Buat Penawaran dari Itinerary**), `PenawaranResource` (Repeater `detail_penawaran`, aksi Kirim, Buat Versi Baru), `ProyekResource` (relation manager termin dan pembayaran), `DestinasiResource`, `LayananResource`, `PortofolioResource`, `KlienLogoResource`, `TestimoniResource` (moderasi), `FaqResource`, `FaqChatbotResource`, `EmailTemplateResource`, halaman `LogChatbot`, `LogRekomendasi`, `LogEmail`, dan `Laporan` (ekspor Excel).
 
 ---
 
@@ -612,6 +608,9 @@ Seluruh uji memakai fake bawaan SDK, tanpa memanggil API sungguhan. Skenario: ke
 | `InfoPembayaranMail` | `info_pembayaran` | id termin dan status | `{termin}`, `{nominal}` |
 | `PengingatKegiatanMail` | `pengingat_kegiatan` | id proyek dan `h7` atau `h1` | `{tgl_mulai}` |
 | `MintaTestimoniMail` | `minta_testimoni` | id proyek | `{link_testimoni}` |
+| `BuktiDiunggahMail` | `bukti_diunggah` | id termin | `{termin}`, `{nominal}` (ke admin) |
+| `PembayaranDiverifikasiMail` | `pembayaran_diverifikasi` | id termin | `{termin}`, `{nominal}` |
+| `PenawaranDiteruskanMail` | `penawaran_diteruskan` | id tautan | `{nama}`, tautan baca-saja |
 
 Pengirim `Admin Empirise <admin@empirise.id>` dari `MAIL_FROM_*`, `Reply-To` ke email admin. Isi dirender dari `email_template` (subjek dan isi dengan variabel). Variabel yang tidak dikenal dibiarkan kosong, bukan mengganggu pengiriman. Tampilan dasar memakai satu layout Markdown mail bertema merah `#D32F2F` dengan tombol ke tautan terkait dan tanda tangan biro.
 
@@ -680,7 +679,7 @@ public function view(User $user, Konsultasi $k): bool
 | Request | Aturan inti |
 |---|---|
 | `RegistrasiRequest` | `nama` wajib maks 120; `email` wajib, email, unik; `telepon` wajib, pola `^(\+62|62|0)8[1-9][0-9]{6,11}$`; `password` wajib, minimal 8, konfirmasi |
-| `KonsultasiRequest` | `id_layanan` nullable exists; `tujuan` nullable maks 255; `jumlah_peserta` nullable integer 1 sampai 5000; `durasi_hari` nullable integer 1 sampai 30; `tgl_rencana` nullable date setelah hari ini; `minat` nullable array; `kebutuhan` wajib maks 3000; khusus rental: jenis kendaraan dan lokasi jemput wajib, jam jemput dan tanggal kembali opsional; tanggal kembali tidak mendahului tanggal rencana; untuk tamu: `nama_kontak`, `email_kontak`, `telepon_kontak` wajib |
+| `KonsultasiRequest` | `id_layanan` nullable exists; `tujuan` nullable maks 255; `jumlah_peserta` nullable integer 1 sampai 5000; `durasi_hari` nullable integer 1 sampai 30; `tgl_rencana` nullable date setelah hari ini; `minat` nullable array; `kebutuhan` wajib maks 3000; untuk tamu: `nama_kontak`, `email_kontak`, `telepon_kontak` wajib |
 | `CeritaRequest` | `cerita` wajib string, 10 sampai 1500 karakter |
 | `PesanChatRequest` | `pesan` wajib maks 500 (atau 1500 jika `mode_cerita`); `konteks.id_konsultasi` nullable, dicek kepemilikan |
 | `ResponsPenawaranRequest` | `aksi` in `setuju,revisi,tolak`; `catatan` wajib jika `revisi`, maks 2000 |
@@ -753,6 +752,18 @@ Ringkasan, tabel komponen (item, jumlah, satuan, harga, subtotal), total, riwaya
 ### 12.7 Admin
 
 Detail konsultasi memuat: tab Percakapan, panel **Pemahaman Kebutuhan** (ringkasan dan `Preferensi` dalam bentuk daftar), panel **Itinerary AI** (timeline), dan aksi **Buat Penawaran dari Itinerary**.
+
+---
+
+### 12.8 Percakapan, Pelacak Langkah, dan Pembayaran Klien
+
+**Percakapan.** Komponen `x-percakapan` dipakai di halaman klien dan admin. Pesan saya ke kanan (merah), pesan lawan ke kiri, pesan sistem di tengah (abu kecil). Daftar `role="log"` dan `aria-live="polite"`, otomatis menggulir ke pesan terbaru, polling `GET /api/konsultasi/{id}/pesan?setelah=` tiap 10 detik, berhenti saat tab tidak aktif. Teks dirender sebagai teks. Pesan klien menandai `Perlu ditanggapi`, balasan admin menghapusnya.
+
+**Pelacak langkah.** Lima langkah: Konsultasi, Penawaran, Setuju, Pembayaran, Selesai. Langkah selesai berwarna hijau, aktif merah. Di bawahnya: `Langkah berikutnya: menunggu Anda` atau `menunggu Empirise`, dihitung dari status konsultasi, penawaran, dan termin.
+
+**Kartu pembayaran (klien).** Setelah deal: rekening tujuan, tabel termin (nama, nominal, status), tombol **Unggah bukti** pada termin belum bayar. Setelah unggah status menjadi `Menunggu verifikasi`. Di admin tombol **Verifikasi** muncul pada termin itu.
+
+**Teruskan ke atasan.** Tombol pada halaman penawaran membuat `penawaran_tautan` dan mengirim email tautan baca-saja.
 
 ---
 
@@ -844,13 +855,13 @@ Alat: Pest 4, `Mail::fake`, `Queue::fake`, fake AI SDK, factory untuk semua mode
 | 1 | Setup proyek, Breeze, Tailwind, font, token, komponen dasar, migration dan seeder | Kerangka siap |
 | 2 | Beranda dan halaman publik sesuai Figma | Landing page jadi |
 | 3 | Registrasi, login, konsultasi (tamu dan klien), balasan, email dasar | Konsultasi end-to-end |
-| 4 | Panel admin Blade: konsultasi, proyek, termin, pembayaran, kalender, konten, laporan, pengguna, chatbot | Admin mengelola operasi yang sudah tersedia |
+| 4 | Filament: konsultasi, penawaran (Repeater), proyek, termin, pembayaran, konten | Admin mengelola proses |
 | 5 | `PenawaranService`, tanggapan klien, deal atomik, proyek, testimoni | Deal lewat website |
 | 6 | `RecommendationService` dan halaman `/rekomendasi` | Rekomendasi tanpa AI |
 | 7 | `PiiMasker`, `PreferensiAgent`, `ItineraryAgent`, `/rencana`, penautan ke konsultasi dan penawaran | Itinerary AI |
 | 8 | Chatbot Publik | Chat pengunjung |
 | 9 | Asisten Akun, Tool, draf chat, isolasi data | Asisten klien |
-| 10 | Email penuh: 11 jenis, template admin, scheduler pengingat, pembersihan retensi | Otomasi |
+| 10 | Email penuh: 14 jenis, template admin, scheduler pengingat, pembersihan retensi | Otomasi |
 | 11 | Responsif, aksesibilitas, kinerja, keamanan, UAT | Rilis |
 
 Tahap 6 sebelum 7 disengaja: mesin rekomendasi harus stabil sebelum ditambah AI.

@@ -5,7 +5,7 @@
 | **Produk** | Website pemesanan kegiatan kustom Empirise Jalan-Jalan |
 | **Versi** | 1.0 (Draft) |
 | **Tanggal** | 6 November 2026 |
-| **Stack** | Laravel 13 (PHP 8.3 sampai 8.5) + MySQL 8  |
+| **Stack** | Laravel 13 (PHP 8.3 sampai 8.5) + MySQL 8 / MariaDB |
 | **Dokumen terkait** | `analsis_pweb_empiris.docx` (analisis sistem), Panduan Membangun Website Empirise (desain ke kode), desain Figma UI-UX-EMPIRISE |
 
 ---
@@ -57,7 +57,7 @@ Prinsip produk: **mulai dari kebutuhan pelanggan, lalu biro yang menyesuaikan.**
 
 - Pembayaran online lewat payment gateway. Pembayaran dicatat manual oleh admin beserta bukti bayar.
 - Harga otomatis atau kalkulator biaya. Harga hanya muncul di penawaran yang disusun admin.
-- Live chat dengan manusia. Interaksi dengan manusia lewat percakapan konsultasi.
+- Live chat real-time dengan manusia. Percakapan klien dan admin tersedia sebagai chat asinkron di halaman konsultasi (polling), ditambah email.
 - Aplikasi mobile native. Website responsif sudah cukup.
 - Pemesanan tiket pihak ketiga (hotel, transportasi umum).
 
@@ -170,7 +170,7 @@ Prioritas: **P0** wajib untuk rilis pertama, **P1** penting, **P2** bila waktu a
 
 | ID | Kebutuhan | Prioritas |
 |---|---|---|
-| FR-50 | Admin membuat termin pembayaran dan mencatat pembayaran beserta bukti (jpg, png, pdf, maks 2 MB) | P0 |
+| FR-50 | Admin membuat termin pembayaran. Klien mengunggah bukti (jpg, png, pdf, maks 2 MB), admin memverifikasi. Admin juga dapat mencatat langsung | P0 |
 | FR-51 | Klien melihat proyek, jadwal, termin, dan status pembayaran | P0 |
 | FR-52 | Klien mengisi testimoni setelah proyek selesai. Admin memoderasi sebelum tampil | P1 |
 

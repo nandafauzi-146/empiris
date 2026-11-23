@@ -6,6 +6,10 @@ return [
         'admin_email' => env('EMPIRISE_ADMIN_EMAIL', 'admin@empirise.id'),
     ],
 
+    'openai' => [
+        'key' => env('OPENAI_API_KEY'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services

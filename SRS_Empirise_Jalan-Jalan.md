@@ -28,7 +28,7 @@ Sistem adalah aplikasi web yang memungkinkan:
 4. Sistem mengirim email otomatis atas nama admin pada setiap tahap.
 5. Dua chatbot AI: Chatbot Publik untuk pengunjung dan Asisten Akun untuk klien yang login.
 
-**Di luar lingkup:** payment gateway, harga otomatis, live chat manusia, aplikasi mobile native, pemesanan tiket pihak ketiga, notifikasi WhatsApp, multi-bahasa.
+**Di luar lingkup:** payment gateway, harga otomatis atau estimasi harga sebelum penawaran, live chat manusia real-time (percakapan klien dan admin tersedia sebagai chat asinkron, lihat 4.3), aplikasi mobile native, pemesanan tiket pihak ketiga, WhatsApp (komunikasi memakai email), multi-bahasa.
 
 ### 1.3 Definisi dan Singkatan
 
@@ -203,7 +203,12 @@ Seluruh trafik lewat HTTPS. Endpoint API bertukar JSON dengan token CSRF (aplika
 | REQ-KON-05 | Klien harus dapat melihat daftar konsultasi, detail, dan riwayat percakapan miliknya | P0 | FR-14 | | U |
 | REQ-KON-06 | Klien dan admin harus dapat saling membalas dalam percakapan konsultasi. Balasan admin memicu email (REQ-EML-04) | P0 | FR-13 | | U |
 | REQ-KON-07 | Klien harus dapat membatalkan konsultasi yang belum deal. Status menjadi `batal` | P1 | | | U |
-| REQ-KON-08 | Untuk layanan Rental Armada, form harus mengumpulkan preferensi jenis kendaraan, lokasi dan perkiraan jam penjemputan, rute, jumlah penumpang, tanggal rencana, dan tanggal kembali opsional. Permintaan hanya konsultasi; admin mengonfirmasi ketersediaan dan mengirim penawaran, tanpa menjanjikan reservasi atau harga otomatis | P0 | FR-11 | | U |
+| REQ-KON-08 | Percakapan konsultasi harus tampil sebagai chat (gelembung pesan, nama pengirim, jam) di halaman klien dan halaman admin, dengan kolom pesan di bawah (maks 500 karakter) | P0 | FR-13 | | D |
+| REQ-KON-09 | Peristiwa penting (penawaran dikirim, disetujui, direvisi) harus muncul di percakapan sebagai pesan sistem | P1 | FR-13 | | U |
+| REQ-KON-10 | Pesan baru harus muncul tanpa memuat ulang halaman (polling berkala, bawaan 10 detik). Pesan klien menandai konsultasi `Perlu ditanggapi`, balasan admin menghapus penanda | P0 | FR-13 | | U |
+| REQ-KON-11 | Klien harus melihat pelacak langkah (Konsultasi, Penawaran, Setuju, Pembayaran, Selesai) beserta penanda siapa yang ditunggu (Anda atau Empirise) | P1 | FR-14 | | D |
+| REQ-KON-12 | Setiap konsultasi harus mencatat sumber: `pemesanan`, `konsultasi`, atau `rencana_ai`, dan admin dapat memfilter berdasarkan sumber | P1 | FR-11 | | U |
+| REQ-KON-13 | Sistem harus menyediakan halaman Pesan (`/pesan`): pengunjung memilih layanan dan destinasi, mengisi jumlah peserta, durasi, tanggal, dan kontak, lalu membuat konsultasi. Menunggu konfirmasi (TBD-12) | P1 | FR-11 | | D |
 
 ### 4.4 Rekomendasi Destinasi
 
@@ -279,7 +284,7 @@ Alur: cerita, penyamaran PII, ekstraksi preferensi, peringkat destinasi, penyusu
 | ID | Pernyataan | P | PRD | Analisis | V |
 |---|---|---|---|---|---|
 | REQ-PNW-01 | Admin harus dapat membuat penawaran dari sebuah konsultasi dengan baris komponen (nama, jumlah, satuan, harga satuan, subtotal) dan total otomatis | P0 | FR-40 | KF-13 | U |
-| REQ-PNW-02 | Admin harus dapat membuat draf penawaran dari itinerary. Komponen terbentuk dari `kebutuhan_pendukung` dan `layanan_pendukung` dengan harga kosong | P0 | FR-41 | KF-34 | U |
+| REQ-PNW-02 | Admin harus dapat membuat draf penawaran dari itinerary. Komponen terbentuk dari `kebutuhan_pendukung` dan `layanan_pendukung` dengan harga satuan default dari tabel harga admin (kosong bila tidak ada default) | P0 | FR-41 | KF-34 | U |
 | REQ-PNW-03 | Penawaran tidak boleh dapat dikirim jika masih ada baris berharga kosong | P0 | FR-41 | | U |
 | REQ-PNW-04 | Saat penawaran dikirim, status menjadi `dikirim` dan sistem mengirim email REQ-EML-06 | P0 | FR-40 | | U |
 | REQ-PNW-05 | Klien harus dapat membuka penawaran miliknya dan memilih **Setuju**, **Minta Revisi**, atau **Tolak** | P0 | FR-42 | | U |
@@ -288,18 +293,23 @@ Alur: cerita, penyamaran PII, ekstraksi preferensi, peringkat destinasi, penyusu
 | REQ-PNW-08 | Saat Setuju, dalam satu transaksi database sistem harus: mengubah status penawaran dan konsultasi menjadi deal, membuat proyek berstatus `terjadwal`, dan menambahkan tanggal ke kalender | P0 | FR-44 | KF-16 | U |
 | REQ-PNW-09 | Setelah deal, sistem harus menampilkan halaman sukses berisi ringkasan, tanggal, dan langkah berikutnya, serta mengirim email REQ-EML-08 | P0 | FR-43 | | U |
 | REQ-PNW-10 | Penawaran yang sudah disetujui atau ditolak tidak boleh dapat ditanggapi ulang | P0 | | | U |
+| REQ-PNW-11 | Deal terjadi saat klien menekan Setuju. Sistem tidak mensyaratkan DP atau dokumen untuk status deal. Pembayaran mengikuti termin setelah deal | P0 | FR-43 | | U |
+| REQ-PNW-12 | Klien harus dapat meneruskan penawaran ke email atasan. Penerima mendapat tautan baca-saja bertoken dan berbatas waktu. Persetujuan tetap dari akun klien (TBD-13) | P1 | FR-42 | | U |
+| REQ-PNW-13 | Admin harus dapat mengelola tabel harga default (nama item, satuan, harga satuan) yang mengisi otomatis komponen penawaran | P1 | FR-41 | | U |
 
 ### 4.9 Proyek, Pembayaran, Testimoni
 
 | ID | Pernyataan | P | PRD | V |
 |---|---|---|---|---|
 | REQ-PRY-01 | Admin harus dapat membuat termin pembayaran (nama, nominal, jatuh tempo) untuk sebuah proyek | P0 | FR-50 | U |
-| REQ-PRY-02 | Admin harus dapat mencatat pembayaran dengan nominal, tanggal, dan bukti (jpg, png, pdf, maks 2 MB, nama file acak) | P0 | FR-50 | U |
-| REQ-PRY-03 | Sistem harus menghitung sisa tagihan dan status pembayaran otomatis | P0 | FR-50 | U |
+| REQ-PRY-02 | Klien harus dapat mengunggah bukti pembayaran pada termin yang belum lunas (jpg, png, pdf, maks 2 MB, nama file acak), sehingga termin berstatus `menunggu_verifikasi`. Admin juga dapat mencatat pembayaran dan bukti langsung | P0 | FR-50 | U |
+| REQ-PRY-03 | Sistem harus menghitung sisa tagihan otomatis. Status termin: `belum_bayar`, `menunggu_verifikasi`, `lunas`. Hanya admin yang dapat mengubah termin menjadi `lunas` | P0 | FR-50 | U |
 | REQ-PRY-04 | Klien harus dapat melihat proyek, jadwal, termin, dan status pembayaran miliknya | P0 | FR-51 | U |
 | REQ-PRY-05 | Admin harus dapat mengubah status proyek (terjadwal, berjalan, selesai, batal) | P0 | FR-72 | U |
 | REQ-PRY-06 | Klien harus dapat mengisi testimoni (rating 1 sampai 5 dan komentar) hanya untuk proyek berstatus selesai miliknya | P1 | FR-52 | U |
 | REQ-PRY-07 | Testimoni baru berstatus menunggu dan hanya tampil di publik setelah disetujui admin | P1 | FR-52 | U |
+| REQ-PRY-08 | Setelah deal, halaman klien harus menampilkan kartu pembayaran: rekening tujuan, nominal per termin, status, dan tombol Unggah bukti | P0 | FR-51 | D |
+| REQ-PRY-09 | Admin harus dapat memverifikasi bukti yang diunggah klien dengan satu aksi. Termin menjadi `lunas` dan klien menerima email konfirmasi | P0 | FR-50 | U |
 
 ### 4.10 Email Otomatis
 
@@ -321,6 +331,9 @@ Alur: cerita, penyamaran PII, ekstraksi preferensi, peringkat destinasi, penyusu
 | REQ-EML-13 | Pengingat harus berhenti otomatis jika klien sudah merespons atau status konsultasi `batal` atau `deal`, dengan maksimal 2 pengingat per konsultasi | P1 | FR-62 | | U |
 | REQ-EML-14 | Admin harus dapat mengaktifkan atau mematikan tiap jenis email dan mengedit subjek dan isi template dengan variabel | P1 | FR-63 | | D |
 | REQ-EML-15 | Email hanya bersifat transaksional, bukan promosi | P0 | | | I |
+| REQ-EML-16 | Klien mengunggah bukti bayar: email notifikasi ke admin | P0 | FR-60 | | U |
+| REQ-EML-17 | Admin memverifikasi pembayaran: email konfirmasi ke klien | P0 | FR-60 | | U |
+| REQ-EML-18 | Klien meneruskan penawaran: email tautan baca-saja ke alamat yang dituju | P1 | FR-42 | | U |
 
 ### 4.11 Panel Admin
 
@@ -333,8 +346,6 @@ Alur: cerita, penyamaran PII, ekstraksi preferensi, peringkat destinasi, penyusu
 | REQ-ADM-05 | Admin harus dapat menghasilkan laporan dan mengekspornya ke Excel atau CSV | P1 | FR-74 | U |
 | REQ-ADM-06 | Admin harus dapat meninjau log chatbot dan rekomendasi | P1 | FR-75 | D |
 | REQ-ADM-07 | Tindakan penting admin (kirim penawaran, ubah status, hapus data) sebaiknya tercatat dalam log audit | P2 | | I |
-| REQ-ADM-08 | Admin harus dapat mencari pengguna, membuat akun admin, dan mengubah peran atau status aktif pengguna lain; perubahan dicatat di audit log dan sistem harus mempertahankan setidaknya satu admin aktif | P1 | | U |
-| REQ-ADM-09 | Admin harus dapat menandai kapasitas tim atau armada pada tanggal tertentu; kalender publik menampilkan status tersedia, terbatas, atau penuh tanpa nama klien | P1 | FR-02, FR-72 | U |
 
 ---
 
@@ -428,6 +439,11 @@ erDiagram
 | `email_log` | `id_email`, `id_konsultasi`, `jenis`, `ke_email`, `subjek`, `status` (terjadwal, terkirim, gagal), `jadwal_kirim`, `terkirim_at`, `error` |
 | `konsultasi.id_itinerary` | FK, null |
 | `konsultasi.preferensi_json` | JSON, null |
+| `konsultasi.sumber`, `konsultasi.organisasi`, `konsultasi.rentang_budget` | Sumber (pemesanan, konsultasi, rencana_ai), organisasi, pilihan rentang budget |
+| `balasan_konsultasi.pengirim`, `.dibaca_at` | Pengirim: klien, admin, sistem. Waktu dibaca untuk indikator pesan baru |
+| `termin_pembayaran.status`, `pembayaran.diunggah_oleh`, `.diverifikasi_oleh`, `.diverifikasi_at` | Status termin `belum_bayar`, `menunggu_verifikasi`, `lunas`. Pencatat unggahan dan verifikasi |
+| `harga_default` | `id`, `nama_item`, `satuan`, `harga_satuan` BIGINT, `layanan` FK NULL, `aktif` |
+| `penawaran_tautan` | `id`, `id_penawaran`, `token` (UNIQUE), `email_tujuan`, `kedaluwarsa_at`, `dibuat_oleh` |
 | `chatbot_log.mode`, `.id_klien`, `.konteks_json` | Mode publik atau akun; klien (null untuk publik) |
 
 `email_log` melengkapi `balasan_konsultasi.terkirim_email`. Kolom itu tetap untuk balasan admin; `email_log` mencatat semua jenis email.
@@ -490,6 +506,10 @@ Proyek: `terjadwal` ke `berjalan` ke `selesai`, atau `batal`.
 | BR-08 | Email itinerary ke klien terkirim setelah klien menekan Kirim ke Empirise, tanpa persetujuan admin |
 | BR-09 | AI hanya boleh memakai destinasi dan layanan yang ada di database |
 | BR-10 | Pengingat otomatis maksimal 2 per konsultasi dan berhenti saat klien merespons |
+| BR-11 | Deal = klien menekan Setuju. Tidak ada syarat DP atau dokumen untuk status deal |
+| BR-12 | Tidak ada estimasi harga sebelum penawaran. Harga hanya di penawaran admin (pengecualian BR-01 tetap) |
+| BR-13 | Komunikasi klien memakai email dan chat di website. WhatsApp tidak dipakai |
+| BR-14 | Klien tidak dapat menandai termin lunas. Klien mengunggah bukti, admin memverifikasi |
 
 ---
 
@@ -698,6 +718,9 @@ Pengirim: `Admin Empirise <admin@empirise.id>` (ganti dengan alamat asli). `Repl
 | REQ-EML-09 | Termin dibuat atau diterima | Klien | Informasi pembayaran {termin} |
 | REQ-EML-10 | H-7 dan H-1 kegiatan | Klien | Pengingat kegiatan Anda |
 | REQ-EML-11 | Proyek selesai | Klien | Bagaimana kegiatan Anda? |
+| REQ-EML-16 | Bukti bayar diunggah klien | Admin | Bukti pembayaran baru menunggu verifikasi |
+| REQ-EML-17 | Pembayaran diverifikasi | Klien | Pembayaran {termin} sudah kami terima |
+| REQ-EML-18 | Klien meneruskan penawaran | Alamat tujuan | Penawaran kegiatan dari {nama} |
 
 Domain pengirim harus memiliki SPF, DKIM, dan DMARC agar email tidak masuk spam.
 
@@ -782,6 +805,9 @@ Domain pengirim harus memiliki SPF, DKIM, dan DMARC agar email tidak masuk spam.
 | TBD-09 | Kebijakan password dan masa berlaku tautan reset (usulan: min 8 karakter, 60 menit) | Tim |
 | TBD-10 | Nomor WhatsApp tampil di footer atau hanya di halaman FAQ dan Kontak | Biro |
 | TBD-11 | Versi pasti `laravel/ai` yang dipakai setelah membaca dokumentasi resmi | Tim |
+| TBD-12 | Halaman Pesan dipertahankan terpisah dari Konsultasi, atau digabung jadi satu | Biro |
+| TBD-13 | Penerima tautan penawaran (atasan): baca-saja, atau dapat menyetujui tanpa akun | Biro |
+| TBD-14 | Pesan chat memakai polling (bawaan 10 detik) atau real-time (WebSocket, misalnya Laravel Reverb) | Tim |
 
 ---
 
@@ -794,3 +820,4 @@ Prompt sistem Chatbot Publik, Asisten Akun, dan itinerary tersimpan di `instruct
 | Versi | Tanggal | Perubahan |
 |---|---|---|
 | 1.0 | 6 November 2026 | Draf awal |
+| 1.1 | 12 November 2026 | Keputusan: deal = klik Setuju (tanpa syarat DP), tanpa estimasi harga, tanpa WhatsApp. Tambahan: chat klien-admin, pelacak langkah, unggah bukti oleh klien dengan verifikasi admin, tabel harga default, teruskan penawaran ke email atasan, halaman Pesan (menunggu konfirmasi) |

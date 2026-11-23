@@ -17,6 +17,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Public\CalendarController as PublicCalendarController;
+use App\Http\Controllers\Public\ChatbotPublicController;
 use App\Http\Controllers\Public\ConsultationController;
 use App\Http\Controllers\Public\DestinationController;
 use App\Models\Project;
@@ -64,6 +65,9 @@ Route::post('/konsultasi', [ConsultationController::class, 'store'])
     ->name('consultation.store');
 Route::view('/faq-kontak', 'pages.contact')->name('contact');
 Route::get('/kalender', PublicCalendarController::class)->name('calendar.public');
+Route::post('/api/chatbot', ChatbotPublicController::class)
+    ->middleware('throttle:chatbot')
+    ->name('chatbot.chat');
 
 Route::middleware('guest')->group(function () {
     Route::get('/daftar', [RegisteredUserController::class, 'create'])
@@ -138,6 +142,11 @@ Route::prefix('akun')
             ->name('profile.edit');
         Route::patch('/profil', [ProfileController::class, 'update'])
             ->name('profile.update');
+        Route::get('/konsultasi/baru', [AccountConsultationController::class, 'create'])
+            ->name('consultations.create');
+        Route::post('/konsultasi/baru', [AccountConsultationController::class, 'store'])
+            ->middleware('throttle:konsultasi')
+            ->name('consultations.store');
         Route::get('/konsultasi', [AccountConsultationController::class, 'index'])
             ->name('consultations.index');
         Route::get('/konsultasi/{consultation}', [AccountConsultationController::class, 'show'])

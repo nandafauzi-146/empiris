@@ -196,7 +196,8 @@ it('links a verified client consultation to their account and shows its conversa
     Queue::fake([SendConsultationNotification::class]);
     $client = User::factory()->create(['role' => 'klien']);
 
-    $this->actingAs($client)
+    // Klien terverifikasi submit via public route langsung
+    $postResponse = $this->actingAs($client)
         ->post(route('consultation.store'), [
             'nama' => $client->name,
             'email' => $client->email,
@@ -212,9 +213,23 @@ it('links a verified client consultation to their account and shows its conversa
         'id_klien' => $client->id,
     ]);
 
-    $this->get(route('consultation.create'))
+    // Session menyimpan consultation_id setelah submit via public store
+    $postResponse->assertSessionHas('consultation_id', $consultation->getKey());
+
+    // Klien verified di-redirect ke account consultations, tetap dapat melihat
+    // detail konsultasinya langsung di halaman akun
+    $this->actingAs($client)
+        ->get(route('account.consultations.show', $consultation))
         ->assertOk()
-        ->assertSee(route('account.consultations.show', $consultation));
+        ->assertSee($consultation->nomor_konsultasi);
+});
+
+it('redirects a verified client from the public consultation form to their account form', function () {
+    $client = User::factory()->create(['role' => 'klien']);
+
+    $this->actingAs($client)
+        ->get(route('consultation.create'))
+        ->assertRedirect(route('account.consultations.create'));
 });
 
 it('rejects missing guest details with Indonesian validation messages and no side effects', function () {

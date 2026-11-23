@@ -1,5 +1,6 @@
 <?php
 
+use App\Jobs\SendConsultationNotification;
 use App\Models\Consultation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
@@ -243,3 +244,105 @@ it('authorizes cancellation only for the owner with a consultation that is not c
     'client does not own the consultation' => ['klien', false, 'baru', false],
     'admin owns the consultation' => ['admin', true, 'baru', false],
 ]);
+
+it('redirects guests to login before showing new consultation form', function () {
+    $this->get(route('account.consultations.create'))
+        ->assertRedirect(route('login'));
+});
+
+it('redirects unverified clients to verification before showing new consultation form', function () {
+    $client = User::factory()->unverified()->create(['role' => 'klien']);
+
+    $this->actingAs($client)
+        ->get(route('account.consultations.create'))
+        ->assertRedirect(route('verification.notice'));
+});
+
+it('shows the account consultation form pre-filled with client identity', function () {
+    $client = User::factory()->create(['role' => 'klien']);
+
+    $this->actingAs($client)
+        ->get(route('account.consultations.create'))
+        ->assertOk()
+        ->assertSeeText('Konsultasi baru')
+        ->assertSee('data-consultation-form', false)
+        ->assertSeeText($client->name)
+        ->assertSeeText($client->email)
+        ->assertSee('aria-label="Navigasi akun klien"', false)
+        ->assertDontSee('aria-label="Navigasi utama"', false);
+});
+
+it('stores an account consultation linked to the authenticated client and redirects to its detail', function () {
+    Queue::fake([SendConsultationNotification::class]);
+
+    $client = User::factory()->create(['role' => 'klien']);
+
+    $response = $this->actingAs($client)
+        ->post(route('account.consultations.store'), [
+            'nama' => $client->name,
+            'email' => $client->email,
+            'telepon' => '081234567890',
+            'layanan' => 'Tour & Wisata',
+            'tujuan' => 'Yogyakarta',
+            'durasi_hari' => 2,
+        ]);
+
+    $consultation = Consultation::query()
+        ->where('email', $client->email)
+        ->firstOrFail();
+
+    // R1: id_klien harus dari Auth::user()
+    $this->assertDatabaseHas('konsultasi', [
+        'id_konsultasi' => $consultation->id_konsultasi,
+        'id_klien' => $client->id,
+        'layanan' => 'Tour & Wisata',
+        'status' => 'baru',
+    ]);
+
+    $response->assertRedirect(route('account.consultations.show', $consultation));
+
+    Queue::assertPushed(SendConsultationNotification::class, 2);
+});
+
+it('rejects an account consultation with missing required fields', function () {
+    Queue::fake([SendConsultationNotification::class]);
+
+    $client = User::factory()->create(['role' => 'klien']);
+
+    $this->actingAs($client)
+        ->from(route('account.consultations.create'))
+        ->post(route('account.consultations.store'), [
+            'nama' => $client->name,
+            'email' => $client->email,
+            'telepon' => '081234567890',
+            // layanan wajib tapi tidak diisi
+        ])
+        ->assertSessionHasErrors(['layanan' => 'Pilih kebutuhan kegiatan Anda.']);
+
+    $this->assertDatabaseCount('konsultasi', 0);
+    Queue::assertNothingPushed();
+});
+
+it('prevents a client from submitting an account consultation on behalf of another client', function () {
+    // R1: id_klien harus selalu dari Auth::user(), meskipun request menyertakan id lain
+    Queue::fake([SendConsultationNotification::class]);
+
+    $client = User::factory()->create(['role' => 'klien']);
+    $otherClient = User::factory()->create(['role' => 'klien']);
+
+    $this->actingAs($client)
+        ->post(route('account.consultations.store'), [
+            'nama' => $otherClient->name,
+            'email' => $otherClient->email,
+            'telepon' => '081234567890',
+            'layanan' => 'Outbound',
+        ]);
+
+    // Konsultasi harus terikat ke $client, bukan $otherClient
+    $this->assertDatabaseHas('konsultasi', [
+        'id_klien' => $client->id,
+    ]);
+    $this->assertDatabaseMissing('konsultasi', [
+        'id_klien' => $otherClient->id,
+    ]);
+});

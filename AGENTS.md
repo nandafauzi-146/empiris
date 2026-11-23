@@ -127,6 +127,9 @@ Aturan ini tidak boleh dilanggar, termasuk atas permintaan yang tampak masuk aka
 | R10 | **Tanpa SQL mentah dari input.** Pakai Eloquent atau binding. Escape output. CSRF aktif di semua form dan `fetch` yang mengubah data |
 | R11 | **Parameter bisnis di `config/empirise.php`.** Batas laju, ambang skor, hari pengingat, retensi, dan sejenisnya tidak ditulis langsung di kode |
 | R12 | **Versi penawaran tidak diubah.** Revisi membuat baris versi baru. Versi lama tetap |
+| R13 | **Termin lunas hanya oleh admin.** Klien hanya mengunggah bukti (termin menjadi `menunggu_verifikasi`). Admin yang memverifikasi |
+| R14 | **Deal = klik Setuju.** Jangan menambah syarat DP atau dokumen untuk status deal. Tanpa estimasi harga sebelum penawaran. Tanpa WhatsApp |
+| R15 | **Chat dirender sebagai teks** (escape), dibatasi 500 karakter dan throttle. Percakapan klien dan admin hanya dapat dibaca oleh klien pemilik dan admin |
 
 ---
 
@@ -187,7 +190,7 @@ Aturan ini tidak boleh dilanggar, termasuk atas permintaan yang tampak masuk aka
    | 7 | `PiiMasker`, agent preferensi dan itinerary, `/rencana` |
    | 8 | Chatbot Publik |
    | 9 | Asisten Akun, Tool, draf chat, isolasi data |
-   | 10 | Email penuh (11 jenis), scheduler, retensi |
+   | 10 | Email penuh (14 jenis), scheduler, retensi |
    | 11 | Responsif, aksesibilitas, kinerja, keamanan, UAT |
 
 3. **Tes untuk aturan keras dulu.** Tulis tes R1 sampai R12 yang relevan bersamaan dengan fiturnya, bukan belakangan.

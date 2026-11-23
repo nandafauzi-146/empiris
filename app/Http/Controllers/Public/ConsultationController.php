@@ -17,8 +17,13 @@ use Illuminate\View\View;
 
 class ConsultationController extends Controller
 {
-    public function create(Request $request): View
+    public function create(Request $request): View|RedirectResponse
     {
+        // Klien yang sudah login dan terverifikasi → form konsultasi akun
+        if ($request->user()?->role === UserRole::Klien && $request->user()->hasVerifiedEmail()) {
+            return redirect()->route('account.consultations.create');
+        }
+
         return view('pages.consultation.create', [
             'selectedService' => $request->query('layanan') === 'Rental Armada'
                 ? 'Rental Armada'

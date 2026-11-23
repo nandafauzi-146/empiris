@@ -9,7 +9,7 @@
             <p class="account-page-eyebrow">Dashboard klien</p>
             <h1>Ringkasan akun Anda</h1>
         </div>
-        <a class="account-primary-action" href="{{ route('consultation.create') }}">Konsultasi baru</a>
+        <a class="account-primary-action" href="{{ route('account.consultations.create') }}">Konsultasi baru</a>
     </header>
 
     @if (session('status'))
@@ -38,7 +38,7 @@
         <div class="account-empty-state">
             <h2>Belum ada konsultasi.</h2>
             <p>Mulai dengan menceritakan rencana kegiatan Anda kepada tim Empirise.</p>
-            <a class="account-primary-action" href="{{ route('consultation.create') }}">Mulai konsultasi</a>
+            <a class="account-primary-action" href="{{ route('account.consultations.create') }}">Mulai konsultasi</a>
         </div>
     @else
         <section id="daftar-konsultasi" class="account-recent-section" aria-labelledby="consultation-list-title">

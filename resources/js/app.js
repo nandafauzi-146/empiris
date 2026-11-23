@@ -1022,7 +1022,45 @@ if (portfolioCarousel instanceof HTMLElement) {
 const chatToggle = document.querySelector('[data-chat-toggle]');
 const assistantPanel = document.querySelector('#assistant-panel');
 const assistantClose = document.querySelector('[data-chat-close]');
-const assistantInput = document.querySelector('#assistant-question');
+const assistantInput = document.querySelector('[data-chat-input]');
+const assistantBody = document.querySelector('#assistant-body');
+const assistantTyping = document.querySelector('#assistant-typing');
+const assistantSuggestions = document.querySelector('#assistant-suggestions');
+const chatForm = document.querySelector('[data-chat-form]');
+
+/** Riwayat percakapan (maks 20 pesan) untuk konteks AI */
+const chatHistory = [];
+
+/**
+ * Buat elemen bubble percakapan.
+ * @param {'user'|'ai'} role
+ * @param {string} text
+ */
+const createBubble = (role, text) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = `assistant-bubble assistant-bubble-${role}`;
+
+    if (role === 'ai') {
+        const label = document.createElement('span');
+        label.className = 'assistant-bubble-label';
+        label.textContent = 'Asisten AI';
+        wrapper.appendChild(label);
+    }
+
+    const p = document.createElement('p');
+    // Render teks mentah — tidak sebagai HTML (R15 AGENTS.md: chat dirender sebagai teks)
+    p.textContent = text;
+    wrapper.appendChild(p);
+
+    return wrapper;
+};
+
+/** Scroll ke bawah panel chat */
+const scrollToBottom = () => {
+    if (assistantBody instanceof HTMLElement) {
+        assistantBody.scrollTop = assistantBody.scrollHeight;
+    }
+};
 
 if (
     chatToggle instanceof HTMLButtonElement &&
@@ -1033,6 +1071,10 @@ if (
         chatToggle.setAttribute('aria-expanded', String(isOpen));
         chatToggle.setAttribute('aria-label', isOpen ? 'Tutup asisten' : 'Buka asisten');
         assistantPanel.classList.toggle('hidden', !isOpen);
+        if (isOpen) {
+            assistantInput.focus();
+            scrollToBottom();
+        }
     };
 
     chatToggle.addEventListener('click', () => {
@@ -1041,11 +1083,16 @@ if (
 
     assistantClose?.addEventListener('click', () => setChatOpen(false));
 
+    // Klik saran → isi input dan langsung kirim
     document.querySelectorAll('[data-chat-suggestion]').forEach((suggestion) => {
         suggestion.addEventListener('click', () => {
-            if (suggestion instanceof HTMLButtonElement) {
+            if (suggestion instanceof HTMLButtonElement && assistantInput) {
                 assistantInput.value = suggestion.textContent?.trim() ?? '';
-                assistantInput.focus();
+                // Sembunyikan saran setelah dipilih
+                if (assistantSuggestions) {
+                    assistantSuggestions.classList.add('hidden');
+                }
+                chatForm?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
             }
         });
     });
@@ -1055,6 +1102,95 @@ if (
             setChatOpen(false);
         }
     });
+
+    // Handler form submit — kirim ke OpenAI via /api/chatbot
+    if (chatForm instanceof HTMLFormElement) {
+        chatForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const message = assistantInput.value.trim();
+            if (!message) return;
+
+            // Sembunyikan saran setelah pertanyaan pertama
+            if (assistantSuggestions) {
+                assistantSuggestions.classList.add('hidden');
+            }
+
+            // Tambahkan bubble user
+            assistantBody?.appendChild(createBubble('user', message));
+            scrollToBottom();
+
+            // Simpan ke riwayat
+            chatHistory.push({ role: 'user', content: message });
+
+            // Reset input
+            assistantInput.value = '';
+            assistantInput.disabled = true;
+            chatForm.querySelector('button[type="submit"]')?.setAttribute('disabled', 'true');
+
+            // Tampilkan typing indicator
+            if (assistantTyping) {
+                assistantTyping.classList.remove('hidden');
+                assistantTyping.setAttribute('aria-hidden', 'false');
+            }
+            scrollToBottom();
+
+            try {
+                // Ambil CSRF token dari meta atau form
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+                    ?? chatForm.querySelector('input[name="_token"]')?.value
+                    ?? '';
+
+                const res = await fetch('/api/chatbot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message,
+                        history: chatHistory.slice(-10),
+                    }),
+                });
+
+                // Sembunyikan typing
+                if (assistantTyping) {
+                    assistantTyping.classList.add('hidden');
+                    assistantTyping.setAttribute('aria-hidden', 'true');
+                }
+
+                if (!res.ok) {
+                    throw new Error(`HTTP ${res.status}`);
+                }
+
+                const data = await res.json();
+                const reply = data.reply ?? 'Maaf, ada kendala. Silakan coba lagi atau mulai konsultasi langsung.';
+
+                // Tambahkan bubble AI
+                assistantBody?.appendChild(createBubble('ai', reply));
+
+                // Simpan balasan AI ke riwayat
+                chatHistory.push({ role: 'assistant', content: reply });
+
+                // Batasi riwayat — maks 20 entri
+                if (chatHistory.length > 20) {
+                    chatHistory.splice(0, chatHistory.length - 20);
+                }
+            } catch {
+                if (assistantTyping) {
+                    assistantTyping.classList.add('hidden');
+                    assistantTyping.setAttribute('aria-hidden', 'true');
+                }
+                assistantBody?.appendChild(createBubble('ai', 'Maaf, terjadi kendala koneksi. Silakan coba lagi atau mulai konsultasi langsung melalui halaman konsultasi.'));
+            } finally {
+                assistantInput.disabled = false;
+                chatForm.querySelector('button[type="submit"]')?.removeAttribute('disabled');
+                assistantInput.focus();
+                scrollToBottom();
+            }
+        });
+    }
 }
 
 document.querySelectorAll('[data-content-edit-toggle]').forEach((toggle) => {

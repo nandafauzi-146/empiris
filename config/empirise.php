@@ -26,5 +26,9 @@ return [
             'attempts' => 20,
             'period_minutes' => 1,
         ],
+        'chatbot' => [
+            'attempts' => 30,
+            'period_minutes' => 60,
+        ],
     ],
 ];

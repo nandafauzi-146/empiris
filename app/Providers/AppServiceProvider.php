@@ -101,5 +101,10 @@ class AppServiceProvider extends ServiceProvider
                 (int) config('empirise.rate_limits.consultation_replies.attempts'),
             )->by((string) $request->user()?->getAuthIdentifier());
         });
+
+        RateLimiter::for('chatbot', fn (Request $request): Limit => Limit::perMinutes(
+            (int) config('empirise.rate_limits.chatbot.period_minutes'),
+            (int) config('empirise.rate_limits.chatbot.attempts'),
+        )->by($request->ip()));
     }
 }

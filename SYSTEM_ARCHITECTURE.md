@@ -4,7 +4,7 @@
 |---|---|
 | **Versi** | 1.0 (Draft) |
 | **Tanggal** | 6 November 2026 |
-| **Stack** | Laravel 13 (PHP 8.3 sampai 8.5), MySQL 8 / MariaDB 10.6+, Blade + Alpine.js + Tailwind, Laravel AI SDK |
+| **Stack** | Laravel 13 (PHP 8.3 sampai 8.5), MySQL 8 / MariaDB 10.6+, Blade + Alpine.js + Tailwind, Filament 5, Laravel AI SDK |
 | **Dokumen terkait** | `PRD_Empirise_Jalan-Jalan.md`, `SRS_Empirise_Jalan-Jalan.md`, `analsis_pweb_empiris.docx`, Panduan Membangun Website Empirise |
 
 Dokumen ini menjelaskan bagaimana sistem disusun: komponen, batas tanggung jawab, alur data, keamanan, dan penerapan. Kebutuhan fungsional ada di SRS. Alasan produk ada di PRD.
@@ -51,7 +51,7 @@ flowchart LR
 |---|---|
 | Pengunjung | Menjelajahi halaman, bercerita ke Chatbot Publik, mengirim konsultasi |
 | Klien | Login, menanggapi penawaran, memantau proyek, memakai Asisten Akun |
-| Admin | Mengelola konsultasi, proyek, pembayaran, kalender, konten, laporan, pengguna, dan chatbot lewat `/admin` |
+| Admin | Mengelola konsultasi, penawaran, proyek, pembayaran, konten lewat `/admin` |
 | Claude API | Ekstraksi preferensi, penyusunan itinerary, percakapan chatbot |
 | Server SMTP | Pengiriman email transaksional |
 | Google Fonts | Font Poppins (bisa di-host sendiri bila ingin tanpa dependensi luar) |
@@ -112,7 +112,7 @@ Satu kode, satu basis data, tiga proses (web, worker, scheduler). Tidak ada laya
 flowchart TB
   subgraph P["Presentasi"]
     V1["Blade dan komponen"]
-    V2["Panel admin Blade"]
+    V2["Filament 5 (admin)"]
     V3["Alpine.js dan widget chat"]
   end
   subgraph H["HTTP"]
@@ -154,7 +154,7 @@ Aturan ketergantungan: lapisan atas boleh memanggil lapisan bawah, tidak sebalik
 | Penawaran dan Deal | Versi penawaran, tanggapan klien, pembuatan proyek | `Services/PenawaranService` |
 | Proyek dan Pembayaran | Termin, bukti, sisa tagihan | `Proyek`, `Pembayaran` |
 | Notifikasi | Mailable, template, log, pengingat | `app/Mail`, `app/Jobs`, `routes/console.php` |
-| Admin | Dashboard, konsultasi, proyek, kalender, konten, laporan, pengguna, dan chatbot | `app/Http/Controllers/Admin`, `resources/views/admin` |
+| Admin | Dashboard, CRUD, laporan | `app/Filament/Resources` |
 
 ### 4.3 Struktur Folder
 
@@ -170,8 +170,9 @@ app/
   Models/
   Policies/
   Services/              # PiiMasker, RecommendationService, PenawaranService
-  Mail/                  # 11 Mailable
+  Mail/                  # 14 Mailable
   Jobs/
+  Filament/Resources/
 config/ai.php            # Laravel AI SDK
 database/{migrations,seeders}
 resources/{views,css,js}
@@ -449,7 +450,7 @@ Email tidak pernah dikirim di dalam transaksi bisnis. Transaksi selesai dulu, la
 | Ikon | Lucide (`blade-lucide-icons`) |
 | Responsif | Mobile-first, breakpoint 1280, 1024, 768 |
 | Aksesibilitas | `alt`, `aria-label`, fokus terlihat, `prefers-reduced-motion` |
-| Admin | Blade + Alpine.js + Tailwind, terpisah dari tampilan publik melalui middleware peran |
+| Admin | Filament 5 (berbasis Livewire 4), terpisah dari tampilan publik |
 
 ---
 
@@ -592,7 +593,7 @@ flowchart LR
 | ADR-01 | Monolit modular Laravel | Skala kecil, tim kecil, operasi sederhana | Semua dalam satu kode. Batas modul dijaga lewat konvensi |
 | ADR-02 | MySQL 8 / MariaDB | Sesuai analisis dan umum di hosting | Tidak ada fitur khusus basis data lain |
 | ADR-03 | Blade + Alpine + Tailwind, bukan SPA | Cepat, SEO baik, ringan di ponsel, cocok desain landing page | Interaksi kompleks terbatas. Cukup untuk lingkup ini |
-| ADR-04 | Panel admin Blade kustom, bukan Filament | Konsisten dengan desain yang disetujui dan menghindari dependensi admin yang belum terpasang | CRUD dan pola UI perlu dipelihara oleh aplikasi |
+| ADR-04 | Filament 5 untuk admin | Mempercepat CRUD, tabel, dan Repeater penawaran | Bergantung pada Livewire 4 dan siklus rilis Filament |
 | ADR-05 | Breeze untuk autentikasi | Sederhana, cocok Blade | Tidak lagi menerima fitur baru. Alternatif: starter kit Livewire atau Fortify |
 | ADR-06 | Laravel AI SDK dibungkus kelas sendiri | Resmi dan terintegrasi, tetapi API dapat berubah | Versi dikunci. Perubahan SDK terisolasi di `app/Ai` |
 | ADR-07 | TF-IDF di PHP untuk peringkat destinasi | Sesuai analisis, murah, dapat dijelaskan | Kualitas bergantung data tag dan deskripsi. Embedding jadi opsi fase lanjut |
@@ -603,6 +604,8 @@ flowchart LR
 | ADR-12 | Itinerary sinkron dengan timeout 30 detik | Pengalaman langsung bagi pengguna | Menahan proses FPM. Mitigasi throttle. Opsi asinkron disiapkan |
 | ADR-13 | Penyamaran PII sebelum ke penyedia AI | Sesuai KNF-11 dan privasi | Kualitas konteks sedikit berkurang untuk nama |
 | ADR-14 | Satu widget, dua mode berdasarkan status login | Pengalaman konsisten | Mode dipilih di server, bukan dari input pengguna |
+| ADR-15 | Chat klien dan admin asinkron dengan polling 10 detik | Terasa seperti chat tanpa infrastruktur real-time | Ada jeda hingga 10 detik. Dapat naik ke WebSocket (Reverb) |
+| ADR-16 | Deal = klik Setuju, pembayaran mengikuti termin (klien unggah, admin verifikasi) | Keputusan bisnis: alur sederhana | Tanggal terkunci sebelum DP. Admin perlu memantau termin pertama |
 
 ---
 
@@ -616,7 +619,7 @@ flowchart LR
 | Data destinasi sedikit atau buruk | Minimal 20 sampai 30 destinasi dengan tag dan deskripsi sebelum fitur AI dirilis |
 | Worker atau cron mati | Supervisor, pemantauan antrean, peringatan |
 | Email masuk spam | SPF, DKIM, DMARC, template ringkas |
-| Modul panel admin berkembang | Pertahankan controller tipis, validasi server, dan logika bisnis di Service |
+| Filament atau Livewire berubah besar | Kunci versi mayor, pisahkan logika bisnis ke Service agar tidak terikat Filament |
 | PHP-FPM kehabisan worker saat itinerary ramai | Throttle, tambah worker, opsi asinkron |
 
 ---
@@ -639,4 +642,4 @@ flowchart LR
 2. `SRS_Empirise_Jalan-Jalan.md`
 3. `analsis_pweb_empiris.docx` (KF, KNF, ERD, aturan bisnis)
 4. Panduan Membangun Website Empirise Jalan-Jalan (Laravel + MySQL)
-5. Dokumentasi resmi Laravel 13 dan Laravel AI SDK
+5. Dokumentasi resmi Laravel 13, Filament 5, dan Laravel AI SDK
