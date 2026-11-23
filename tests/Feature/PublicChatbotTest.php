@@ -19,13 +19,17 @@ it('rejects an empty message or invalid input', function () {
         ->assertJsonValidationErrors(['message']);
 });
 
-it('responds to user questions via OpenAI without saving conversation to database', function () {
+it('responds to user questions via Google Gemini without saving conversation to database', function () {
     Http::fake([
-        'https://api.openai.com/v1/chat/completions' => Http::response([
-            'choices' => [
+        'https://generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [
                 [
-                    'message' => [
-                        'content' => 'Halo! Empirise menyediakan layanan Tour, Gathering, Outbound, Rental Armada, dan Team Building. Layanan apa yang Anda butuhkan?',
+                    'content' => [
+                        'parts' => [
+                            [
+                                'text' => 'Halo! Empirise menyediakan layanan Tour, Gathering, Outbound, Rental Armada, dan Team Building. Layanan apa yang Anda butuhkan?',
+                            ],
+                        ],
                     ],
                 ],
             ],
@@ -49,13 +53,17 @@ it('responds to user questions via OpenAI without saving conversation to databas
     expect(Schema::hasTable('faq_chatbot'))->toBeFalse();
 });
 
-it('answers authenticated client questions without storing conversation history', function () {
+it('answers authenticated client questions via Gemini without storing conversation history', function () {
     Http::fake([
-        'https://api.openai.com/v1/chat/completions' => Http::response([
-            'choices' => [
+        'https://generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [
                 [
-                    'message' => [
-                        'content' => 'Tentu, silakan mulai konsultasi untuk merencanakan kegiatan Anda.',
+                    'content' => [
+                        'parts' => [
+                            [
+                                'text' => 'Tentu, silakan mulai konsultasi untuk merencanakan kegiatan Anda.',
+                            ],
+                        ],
                     ],
                 ],
             ],
@@ -76,11 +84,15 @@ it('answers authenticated client questions without storing conversation history'
 
 it('applies guardrail to replace any price quote with standard disclaimer', function () {
     Http::fake([
-        'https://api.openai.com/v1/chat/completions' => Http::response([
-            'choices' => [
+        'https://generativelanguage.googleapis.com/*' => Http::response([
+            'candidates' => [
                 [
-                    'message' => [
-                        'content' => 'Biaya paket wisata kami mulai dari Rp 1.500.000 per orang.',
+                    'content' => [
+                        'parts' => [
+                            [
+                                'text' => 'Biaya paket wisata kami mulai dari Rp 1.500.000 per orang.',
+                            ],
+                        ],
                     ],
                 ],
             ],
@@ -95,12 +107,12 @@ it('applies guardrail to replace any price quote with standard disclaimer', func
 
     // R2: Chatbot publik tidak boleh memuat harga
     expect($response->json('reply'))->not->toContain('Rp 1.500.000')
-        ->and($response->json('reply'))->toContain('Harga disusun oleh tim Empirise dalam penawaran');
+        ->and($response->json('reply'))->toContain('Harga disusun oleh tim Empirise dalam penawaran resmi');
 });
 
-it('returns intelligent in-memory knowledge base answer when OpenAI fails or quota is exhausted', function () {
+it('returns fallback answer when Gemini connection fails completely', function () {
     Http::fake([
-        'https://api.openai.com/v1/chat/completions' => Http::response(['error' => 'Rate limit'], 500),
+        'https://generativelanguage.googleapis.com/*' => Http::response(['error' => 'Unavailable'], 503),
     ]);
 
     $response = $this->postJson(route('chatbot.chat'), [
@@ -112,6 +124,5 @@ it('returns intelligent in-memory knowledge base answer when OpenAI fails or quo
             'answered' => true,
         ]);
 
-    expect($response->json('reply'))->toContain('Big Bus')
-        ->and($response->json('reply'))->toContain('Medium Bus');
+    expect($response->json('reply'))->toContain('Asisten AI Empirise');
 });
