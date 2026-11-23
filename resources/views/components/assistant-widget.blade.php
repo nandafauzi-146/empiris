@@ -17,14 +17,14 @@
             {{-- Pesan selamat datang --}}
             <div class="assistant-bubble assistant-bubble-ai">
                 <span class="assistant-bubble-label">Asisten AI</span>
-                <p>Halo! Saya Asisten AI Empirise Jalan-Jalan. Saya siap membantu Anda memahami layanan dan proses konsultasi kami. Apa yang bisa saya bantu?</p>
+                <p>Selamat datang di Empirise Jalan-Jalan. Saya Asisten AI resmi Empirise yang siap membantu memberikan informasi terkait layanan, destinasi, dan prosedur konsultasi kegiatan Anda. Apakah ada hal yang dapat saya bantu?</p>
             </div>
 
             {{-- Saran pertanyaan awal --}}
             <div class="assistant-suggestions" id="assistant-suggestions" aria-label="Pertanyaan yang sering ditanyakan">
                 <button class="assistant-suggestion" type="button" data-chat-suggestion>Apa saja layanan Empirise?</button>
-                <button class="assistant-suggestion" type="button" data-chat-suggestion>Bagaimana proses konsultasi?</button>
-                <button class="assistant-suggestion" type="button" data-chat-suggestion>Cara memulai konsultasi?</button>
+                <button class="assistant-suggestion" type="button" data-chat-suggestion>Bagaimana alur konsultasi kegiatan?</button>
+                <button class="assistant-suggestion" type="button" data-chat-suggestion>Armada transportasi yang tersedia?</button>
             </div>
         </div>
 

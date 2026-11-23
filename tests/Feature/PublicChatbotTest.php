@@ -107,7 +107,7 @@ it('applies guardrail to replace any price quote with standard disclaimer', func
 
     // R2: Chatbot publik tidak boleh memuat harga
     expect($response->json('reply'))->not->toContain('Rp 1.500.000')
-        ->and($response->json('reply'))->toContain('Harga disusun oleh tim Empirise dalam penawaran resmi');
+        ->and($response->json('reply'))->toContain('surat penawaran resmi');
 });
 
 it('returns fallback answer when Gemini connection fails completely', function () {
@@ -124,5 +124,6 @@ it('returns fallback answer when Gemini connection fails completely', function (
             'answered' => true,
         ]);
 
-    expect($response->json('reply'))->toContain('Asisten AI Empirise');
+    expect($response->json('reply'))->toContain('Asisten AI')
+        ->and($response->json('reply'))->toContain('Empirise Jalan-Jalan');
 });

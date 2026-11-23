@@ -1093,6 +1093,8 @@ button {
     font-size: var(--text-body-small);
     line-height: var(--leading-assistant);
     margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .assistant-bubble-user p {
@@ -1103,6 +1105,8 @@ button {
     font-size: var(--text-body-small);
     line-height: var(--leading-assistant);
     margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 /* Typing indicator */
