@@ -2,6 +2,10 @@
 
 return [
 
+    'empirise' => [
+        'admin_email' => env('EMPIRISE_ADMIN_EMAIL', 'admin@empirise.id'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Third Party Services
