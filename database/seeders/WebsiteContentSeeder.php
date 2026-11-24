@@ -36,6 +36,9 @@ class WebsiteContentSeeder extends Seeder
             ['Outbound', 'outbound', 'Program outbound dan fun games dengan fasilitator berpengalaman.', ['icon' => 'gamepad']],
             ['Rental Armada', 'rental-armada', 'Bus dan minibus untuk perjalanan kelompok bersama pengemudi profesional.', ['icon' => 'bus']],
             ['Team Building', 'team-building', 'Kegiatan kolaboratif untuk mengembangkan kerja sama dan kebersamaan tim.', ['icon' => 'users']],
+            ['Kunjungan Industri & Edukasi', 'kunjungan-industri-edukasi', 'Program kunjungan perusahaan, pabrik, dan institusi pendidikan dengan fasilitasi audiensi profesional.', ['icon' => 'building']],
+            ['Pelatihan & Pengembangan SDM', 'pelatihan-pengembangan-sdm', 'Workshop, pelatihan kepemimpinan, dan pengembangan kapasitas kerja sama tim dengan kurikulum terarah.', ['icon' => 'award']],
+            ['Hiburan & Awarding', 'hiburan-awarding', 'Penyelenggaraan malam apresiasi, awarding night, konser intim, dan hiburan panggung berkelas.', ['icon' => 'sparkles']],
         ]);
 
         $this->seedContent('portofolio', [

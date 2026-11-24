@@ -6,7 +6,7 @@
 | **Versi** | 1.0 (Draft) |
 | **Tanggal** | 6 November 2026 |
 | **Stack** | Laravel 13 (PHP 8.3 sampai 8.5) + MySQL 8 / MariaDB |
-| **Dokumen terkait** | `analsis_pweb_empiris.docx` (analisis sistem), Panduan Membangun Website Empirise (desain ke kode), desain Figma UI-UX-EMPIRISE |
+| **Dokumen terkait** | PRD_Empirise_Jalan-Jalan.md (analisis sistem), Panduan Membangun Website Empirise (desain ke kode), desain Figma UI-UX-EMPIRISE |
 
 ---
 

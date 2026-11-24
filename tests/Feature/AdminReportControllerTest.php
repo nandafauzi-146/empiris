@@ -4,7 +4,6 @@ use App\Enums\UserRole;
 use App\Models\Consultation;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
-use ZipArchive;
 
 uses(LazilyRefreshDatabase::class);
 

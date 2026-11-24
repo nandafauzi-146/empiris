@@ -16,6 +16,7 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Public\CalendarController as PublicCalendarController;
+use App\Http\Controllers\Public\CeritaDuluController;
 use App\Http\Controllers\Public\ChatbotPublicController;
 use App\Http\Controllers\Public\ConsultationController;
 use App\Http\Controllers\Public\DestinationController;
@@ -29,7 +30,16 @@ Route::view('/tentang', 'pages.about')->name('about');
 
 Route::view('/layanan', 'pages.services.index')->name('services.index');
 Route::view('/layanan/{slug}', 'pages.services.show')
-    ->whereIn('slug', ['tour-wisata', 'event-gathering', 'outbound', 'rental-armada', 'team-building'])
+    ->whereIn('slug', [
+        'tour-wisata',
+        'event-gathering',
+        'outbound',
+        'rental-armada',
+        'team-building',
+        'kunjungan-industri-edukasi',
+        'pelatihan-pengembangan-sdm',
+        'hiburan-awarding',
+    ])
     ->name('services.show');
 
 Route::get('/destinasi', [DestinationController::class, 'index'])->name('destinations.index');
@@ -64,9 +74,27 @@ Route::post('/konsultasi', [ConsultationController::class, 'store'])
     ->name('consultation.store');
 Route::view('/faq-kontak', 'pages.contact')->name('contact');
 Route::get('/kalender', PublicCalendarController::class)->name('calendar.public');
+Route::get('/pesan', function (Request $request) {
+    if (! auth()->check()) {
+        session(['pending_action' => [
+            'type' => 'pesan',
+            'payload' => $request->all(),
+            'redirect_url' => route('consultation.create', $request->all()),
+        ]]);
+
+        return to_route('login')
+            ->with('status', 'Silakan masuk atau daftar terlebih dahulu untuk melanjutkan pemesanan dan deal harga.');
+    }
+
+    return to_route('consultation.create', $request->all());
+})->name('order.gate');
+
 Route::post('/api/chatbot', ChatbotPublicController::class)
     ->middleware('throttle:chatbot')
     ->name('chatbot.chat');
+Route::post('/api/rekomendasi/cerita', CeritaDuluController::class)
+    ->middleware('throttle:chatbot')
+    ->name('recommendation.story');
 
 Route::middleware('guest')->group(function () {
     Route::get('/daftar', [RegisteredUserController::class, 'create'])
@@ -110,6 +138,13 @@ Route::get('/email/verifikasi/{id}/{hash}', function (EmailVerificationRequest $
     $request->fulfill();
     $request->user()->claimGuestConsultations();
 
+    if ($pending = $request->session()->pull('pending_action')) {
+        $targetUrl = $pending['redirect_url'] ?? route('account.consultations.index');
+
+        return redirect()->to($targetUrl)
+            ->with('status', 'Email berhasil diverifikasi. Konsultasi dan tindakan pemesanan Anda sudah dilanjutkan.');
+    }
+
     return to_route('account.consultations.index')
         ->with('status', 'Email berhasil diverifikasi. Konsultasi Anda sudah ditautkan ke akun.');
 })->middleware(['auth', 'signed', 'throttle:email-verification'])->name('verification.verify');
@@ -137,6 +172,9 @@ Route::prefix('akun')
 
             return view('account.projects.index', ['projects' => $projects]);
         })->name('projects.index');
+        Route::get('/penawaran/{offer}/pdf', [AccountConsultationController::class, 'downloadOfferPdf'])
+            ->whereNumber('offer')
+            ->name('offers.pdf');
         Route::get('/profil', [ProfileController::class, 'edit'])
             ->name('profile.edit');
         Route::patch('/profil', [ProfileController::class, 'update'])
@@ -182,6 +220,31 @@ Route::prefix('admin')
             ->whereNumber('consultation')
             ->whereNumber('offer')
             ->name('consultations.offers.send');
+        Route::post('/konsultasi/{consultation}/penawaran/{offer}/versi-baru', [AdminConsultationController::class, 'newOfferVersion'])
+            ->whereNumber('consultation')
+            ->whereNumber('offer')
+            ->name('consultations.offers.new-version');
+        Route::get('/konsultasi/{consultation}/penawaran/{offer}/pdf', [AdminConsultationController::class, 'downloadPdf'])
+            ->whereNumber('consultation')
+            ->whereNumber('offer')
+            ->name('consultations.offers.pdf');
+        Route::get('/konsultasi/{consultation}/penawaran/{offer}/pratinjau', [AdminConsultationController::class, 'previewProposal'])
+            ->whereNumber('consultation')
+            ->whereNumber('offer')
+            ->name('consultations.offers.preview');
+        Route::post('/konsultasi/{consultation}/penawaran/{offer}/logo', [AdminConsultationController::class, 'uploadLogo'])
+            ->whereNumber('consultation')
+            ->whereNumber('offer')
+            ->name('consultations.offers.logo');
+        Route::post('/konsultasi/{consultation}/penawaran/{offer}/foto', [AdminConsultationController::class, 'uploadPhoto'])
+            ->whereNumber('consultation')
+            ->whereNumber('offer')
+            ->name('consultations.offers.photos.store');
+        Route::delete('/konsultasi/{consultation}/penawaran/{offer}/foto/{photo}', [AdminConsultationController::class, 'deletePhoto'])
+            ->whereNumber('consultation')
+            ->whereNumber('offer')
+            ->whereNumber('photo')
+            ->name('consultations.offers.photos.destroy');
         Route::get('/proyek', [AdminProjectController::class, 'index'])->name('projects.index');
         Route::post('/proyek', [AdminProjectController::class, 'store'])->name('projects.store');
         Route::patch('/proyek/{project}/status', [AdminProjectController::class, 'updateStatus'])

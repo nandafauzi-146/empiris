@@ -13,7 +13,7 @@
         <p>
             <a href="mailto:halo@empirise.id">halo@empirise.id</a>
             <span aria-hidden="true">/</span>
-            <a href="https://wa.me/6281234567890">WhatsApp 0812-3456-7890</a>
+            <a href="https://wa.me/{{ config('empirise.whatsapp_number', '6281234567890') }}">WhatsApp Tim Empirise</a>
         </p>
         <p>2025 Empirise. Berizin resmi.</p>
     </div>

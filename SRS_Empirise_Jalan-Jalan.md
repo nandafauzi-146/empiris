@@ -504,11 +504,11 @@ Proyek: `terjadwal` ke `berjalan` ke `selesai`, atau `batal`.
 | BR-06 | Klien hanya dapat mengakses data miliknya |
 | BR-07 | Testimoni baru hanya tampil setelah dimoderasi admin |
 | BR-08 | Email itinerary ke klien terkirim setelah klien menekan Kirim ke Empirise, tanpa persetujuan admin |
-| BR-09 | AI hanya boleh memakai destinasi dan layanan yang ada di database |
+| BR-09 | Peringkat destinasi dari database. Bila cerita menyebut tujuan di luar database, AI boleh mengusulkannya sebagai tujuan bebas (sumber = bebas) tanpa klaim jam buka/fasilitas resmi (CHG-07) |
 | BR-10 | Pengingat otomatis maksimal 2 per konsultasi dan berhenti saat klien merespons |
 | BR-11 | Deal = klien menekan Setuju. Tidak ada syarat DP atau dokumen untuk status deal |
 | BR-12 | Tidak ada estimasi harga sebelum penawaran. Harga hanya di penawaran admin (pengecualian BR-01 tetap) |
-| BR-13 | Komunikasi klien memakai email dan chat di website. WhatsApp tidak dipakai |
+| BR-13 | Komunikasi resmi dan deal di website. Tanpa bot/integrasi API WhatsApp, namun diperbolehkan tautan click-to-chat https://wa.me/<nomor> di beranda, rekomendasi, dan proposal (CHG-10) |
 | BR-14 | Klien tidak dapat menandai termin lunas. Klien mengunggah bukti, admin memverifikasi |
 
 ---

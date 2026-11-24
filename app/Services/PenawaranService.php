@@ -15,20 +15,39 @@ use Illuminate\Support\Facades\DB;
 
 class PenawaranService
 {
-    public function buat(Consultation $consultation, array $details, ?string $catatanAdmin = null): Penawaran
-    {
-        return DB::transaction(function () use ($consultation, $details, $catatanAdmin): Penawaran {
+    /**
+     * Buat penawaran / proposal baru untuk konsultasi.
+     *
+     * @param  array<int, array{nama_item: string, deskripsi?: ?string, jumlah: numeric, satuan: string, harga_satuan?: ?int, asal?: string}>  $details
+     * @param  array<string, mixed>  $proposalData
+     */
+    public function buat(
+        Consultation $consultation,
+        array $details,
+        ?string $catatanAdmin = null,
+        array $proposalData = []
+    ): Penawaran {
+        return DB::transaction(function () use ($consultation, $details, $catatanAdmin, $proposalData): Penawaran {
             $latestVersion = (int) Penawaran::query()
                 ->where('id_konsultasi', $consultation->getKey())
                 ->lockForUpdate()
                 ->max('versi');
 
+            $configProposal = config('empirise.proposal', []);
+
             $offer = Penawaran::query()->create([
                 'id_konsultasi' => $consultation->getKey(),
                 'versi' => $latestVersion + 1,
                 'status' => PenawaranStatus::Draft,
-                'judul' => 'Penawaran '.$consultation->layanan,
+                'judul' => $proposalData['judul'] ?? ('Penawaran '.$consultation->layanan),
+                'pemahaman' => $proposalData['pemahaman'] ?? null,
                 'catatan_admin' => $catatanAdmin,
+                'cakupan_termasuk' => $proposalData['cakupan_termasuk'] ?? ($configProposal['cakupan_termasuk'] ?? null),
+                'cakupan_tidak' => $proposalData['cakupan_tidak'] ?? ($configProposal['cakupan_tidak'] ?? null),
+                'keselamatan' => $proposalData['keselamatan'] ?? ($configProposal['keselamatan'] ?? null),
+                'syarat' => $proposalData['syarat'] ?? ($configProposal['syarat'] ?? null),
+                'berlaku_hari' => $proposalData['berlaku_hari'] ?? ($configProposal['berlaku_hari'] ?? 14),
+                'logo_path' => $proposalData['logo_path'] ?? null,
                 'total' => 0,
             ]);
 
@@ -44,9 +63,21 @@ class PenawaranService
                 ]);
             }
 
+            if (! empty($proposalData['days']) && is_array($proposalData['days'])) {
+                foreach (array_values($proposalData['days']) as $dIndex => $day) {
+                    if (! empty($day['judul']) || ! empty($day['isi'])) {
+                        $offer->days()->create([
+                            'urutan' => $dIndex + 1,
+                            'judul' => mb_substr((string) ($day['judul'] ?? 'Hari '.($dIndex + 1)), 0, 60),
+                            'isi' => (string) ($day['isi'] ?? ''),
+                        ]);
+                    }
+                }
+            }
+
             $this->hitungTotal($offer);
 
-            return $offer->fresh(['details']);
+            return $offer->fresh(['details', 'days', 'photos']);
         });
     }
 
@@ -144,6 +175,10 @@ class PenawaranService
         });
     }
 
+    /**
+     * Buat versi baru proposal dari proposal sebelumnya yang direvisi/dikirim.
+     * Menyalin seluruh isi proposal, rincian biaya, hari kegiatan, dan foto (R12, CHG-06).
+     */
     public function buatVersiBaru(Penawaran $lama): Penawaran
     {
         return DB::transaction(function () use ($lama): Penawaran {
@@ -162,7 +197,14 @@ class PenawaranService
                 'versi' => $latestVersion + 1,
                 'status' => PenawaranStatus::Draft,
                 'judul' => $lama->judul,
+                'pemahaman' => $lama->pemahaman,
                 'catatan_admin' => $lama->catatan_admin,
+                'cakupan_termasuk' => $lama->cakupan_termasuk,
+                'cakupan_tidak' => $lama->cakupan_tidak,
+                'keselamatan' => $lama->keselamatan,
+                'syarat' => $lama->syarat,
+                'berlaku_hari' => $lama->berlaku_hari,
+                'logo_path' => $lama->logo_path,
                 'total' => 0,
             ]);
 
@@ -178,9 +220,27 @@ class PenawaranService
                 ]);
             }
 
+            foreach ($lama->days as $day) {
+                $baru->days()->create([
+                    'urutan' => $day->urutan,
+                    'judul' => $day->judul,
+                    'isi' => $day->isi,
+                ]);
+            }
+
+            foreach ($lama->photos as $photo) {
+                $baru->photos()->create([
+                    'jenis' => $photo->jenis,
+                    'nama_destinasi' => $photo->nama_destinasi,
+                    'path' => $photo->path,
+                    'keterangan' => $photo->keterangan,
+                    'urutan' => $photo->urutan,
+                ]);
+            }
+
             $this->hitungTotal($baru);
 
-            return $baru->fresh(['details']);
+            return $baru->fresh(['details', 'days', 'photos']);
         });
     }
 

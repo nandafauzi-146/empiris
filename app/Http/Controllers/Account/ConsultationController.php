@@ -11,10 +11,13 @@ use App\Jobs\SendConsultationNotification;
 use App\Models\Consultation;
 use App\Models\EmailLog;
 use App\Models\PaymentTerm;
+use App\Models\Penawaran;
 use App\Models\Project;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -108,8 +111,21 @@ class ConsultationController extends Controller
         return view('account.consultations.show', [
             'consultation' => $ownedConsultation,
             'replies' => $ownedConsultation->replies()->with('sender')->paginate(20),
-            'offers' => $ownedConsultation->offers()->with('details')->get(),
+            'offers' => $ownedConsultation->offers()->with(['details', 'days', 'photos'])->get(),
         ]);
+    }
+
+    public function downloadOfferPdf(Request $request, Penawaran $offer): Response
+    {
+        $ownedOffer = Penawaran::query()
+            ->whereHas('consultation', fn ($query) => $query->where('id_klien', $request->user()->getKey()))
+            ->findOrFail($offer->getKey());
+
+        $ownedOffer->load(['consultation', 'details', 'days', 'photos']);
+        $pdf = Pdf::loadView('pdf.proposal', ['offer' => $ownedOffer]);
+        $filename = 'Proposal-'.Str::slug($ownedOffer->judul ?: 'empirise').'-v'.$ownedOffer->versi.'.pdf';
+
+        return $pdf->download($filename);
     }
 
     public function cancel(Request $request, Consultation $consultation): RedirectResponse

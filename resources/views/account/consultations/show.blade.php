@@ -57,10 +57,49 @@
 
         @foreach ($offers as $offer)
             <article class="account-detail-card" aria-labelledby="offer-{{ $offer->id_penawaran }}">
-                <h2 id="offer-{{ $offer->id_penawaran }}">Penawaran versi {{ $offer->versi }}</h2>
-                <p class="text-copy">Status: {{ $offer->status->label() }}</p>
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                        <h2 id="offer-{{ $offer->id_penawaran }}">{{ $offer->judul ?: ('Penawaran versi ' . $offer->versi) }}</h2>
+                        <p class="text-copy">Versi {{ $offer->versi }} &bull; Status: <span class="font-semibold">{{ $offer->status->label() }}</span></p>
+                    </div>
+                    <div>
+                        <a href="{{ route('account.offers.pdf', $offer) }}" class="button-secondary text-xs inline-flex items-center gap-1.5" target="_blank">
+                            <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <span>Unduh Dokumen PDF</span>
+                        </a>
+                    </div>
+                </div>
+
+                @if ($offer->pemahaman)
+                    <div class="mt-3 p-3 bg-red-50/50 border border-red-100 rounded-xl text-xs text-gray-800">
+                        <strong>Pemahaman Rencana Kegiatan:</strong>
+                        <p class="mt-1">{{ $offer->pemahaman }}</p>
+                    </div>
+                @endif
+
+                @if ($offer->days->isNotEmpty())
+                    <div class="mt-3">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-gray-700 mb-1">Rencana Hari Kegiatan</h3>
+                        <div class="space-y-2">
+                            @foreach ($offer->days as $day)
+                                <div class="bg-gray-50 border border-gray-200 rounded-lg p-2.5 text-xs">
+                                    <strong class="text-gray-900">{{ $day->judul }}:</strong>
+                                    <span class="text-gray-700">{{ $day->isi }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 @if ($offer->catatan_admin)
                     <p class="mt-3 text-copy">{{ $offer->catatan_admin }}</p>
+                @endif
+
+                @if ($offer->catatan_klien)
+                    <div class="mt-3 bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900">
+                        <strong>Catatan Permintaan Revisi / Negosiasi Anda:</strong>
+                        <p class="mt-1">{{ $offer->catatan_klien }}</p>
+                    </div>
                 @endif
                 <dl class="account-detail-list mt-4">
                     @foreach ($offer->details as $detail)

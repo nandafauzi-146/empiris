@@ -78,11 +78,22 @@
                                     <p class="form-error" id="consultation-phone-error">{{ $message }}</p>
                                 @enderror
                             </div>
+                        <div class="form-row">
                             <div class="form-field form-field-half">
                                 <label for="consultation-organization">Instansi / perusahaan</label>
                                 <input id="consultation-organization" name="instansi" type="text"
                                        autocomplete="organization" value="{{ old('instansi') }}"
                                        maxlength="255">
+                            </div>
+                            <div class="form-field form-field-half">
+                                <label for="consultation-client-type">Kategori rombongan (opsional)</label>
+                                <select id="consultation-client-type" name="tipe_klien">
+                                    <option value="">Pilih kategori rombongan</option>
+                                    <option value="korporat" @selected(old('tipe_klien', request('tipe')) === 'korporat')>Perusahaan / Korporat</option>
+                                    <option value="kampus" @selected(old('tipe_klien', request('tipe')) === 'kampus')>Kampus / Sekolah</option>
+                                    <option value="instansi" @selected(old('tipe_klien', request('tipe')) === 'instansi')>Instansi Pemerintah / Dinas</option>
+                                    <option value="umum" @selected(old('tipe_klien', request('tipe')) === 'umum')>Komunitas / Keluarga / Umum</option>
+                                </select>
                             </div>
                         </div>
 
@@ -96,6 +107,9 @@
                                 <option value="Outbound" @selected(old('layanan') === 'Outbound')>Outbound</option>
                                 <option value="Rental Armada" @selected(old('layanan', $selectedService) === 'Rental Armada')>Rental Armada</option>
                                 <option value="Team Building" @selected(old('layanan') === 'Team Building')>Team Building</option>
+                                <option value="Kunjungan Industri & Edukasi" @selected(old('layanan') === 'Kunjungan Industri & Edukasi')>Kunjungan Industri &amp; Edukasi</option>
+                                <option value="Pelatihan & Pengembangan SDM" @selected(old('layanan') === 'Pelatihan & Pengembangan SDM')>Pelatihan &amp; Pengembangan SDM</option>
+                                <option value="Hiburan & Awarding" @selected(old('layanan') === 'Hiburan & Awarding')>Hiburan &amp; Awarding</option>
                             </select>
                             @error('layanan')
                                 <p class="form-error" id="consultation-service-error">{{ $message }}</p>
@@ -194,7 +208,7 @@
                         <div class="form-field form-field-half">
                             <label for="consultation-duration">Durasi (hari, opsional)</label>
                             <input id="consultation-duration" name="durasi_hari" type="number"
-                                   min="1" max="365" inputmode="numeric" value="{{ old('durasi_hari') }}">
+                                   min="1" max="365" inputmode="numeric" value="{{ old('durasi_hari', request('durasi')) }}">
                             @error('durasi_hari')
                                 <p class="form-error" id="consultation-duration-error">{{ $message }}</p>
                             @enderror
@@ -208,10 +222,16 @@
                         <div class="form-field">
                             <label for="consultation-notes">Catatan kebutuhan</label>
                             <textarea id="consultation-notes" name="cerita_kebutuhan" rows="4" maxlength="1500"
-                                      placeholder="Ceritakan gambaran kegiatan yang Anda rencanakan.">{{ old('cerita_kebutuhan') }}</textarea>
+                                      placeholder="Ceritakan gambaran kegiatan yang Anda rencanakan.">{{ old('cerita_kebutuhan', request('cerita')) }}</textarea>
                             @error('cerita_kebutuhan')
                                 <p class="form-error" id="consultation-notes-error">{{ $message }}</p>
                             @enderror
+                        </div>
+
+                        <div class="form-field">
+                            <label for="consultation-outcome">Hasil atau target yang diharapkan (opsional)</label>
+                            <textarea id="consultation-outcome" name="hasil_diinginkan" rows="2" maxlength="2000"
+                                      placeholder="Contoh: Mempererat kerja sama tim, penyegaran setelah target tahunan, dsb.">{{ old('hasil_diinginkan') }}</textarea>
                         </div>
 
                         <button class="button-primary consultation-submit" type="submit">

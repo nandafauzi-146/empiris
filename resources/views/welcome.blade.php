@@ -312,6 +312,8 @@
                 </div>
             </section>
 
+            <x-story-planner />
+
             <x-trust-strip />
 
             <section class="content-section" id="layanan">
@@ -424,6 +426,8 @@
                     @endforeach
                 </div>
             </section>
+
+            <x-why-empirise />
 
             <section class="content-section content-section-tint">
                 <div class="page-shell">

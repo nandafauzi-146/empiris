@@ -40,7 +40,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->user()->claimGuestConsultations();
 
-        return to_route('account.consultations.index');
+        if ($pending = $request->session()->pull('pending_action')) {
+            $targetUrl = $pending['redirect_url'] ?? route('account.consultations.index');
+
+            return redirect()->to($targetUrl)->with('status', 'Selamat datang! Tindakan pemesanan Anda dilanjutkan.');
+        }
+
+        return redirect()->intended(route('account.consultations.index'));
     }
 
     public function destroy(Request $request): RedirectResponse

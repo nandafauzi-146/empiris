@@ -8,10 +8,15 @@ use App\Http\Requests\StoreConsultationReplyRequest;
 use App\Jobs\SendConsultationReplyNotification;
 use App\Models\Consultation;
 use App\Models\Penawaran;
+use App\Models\PenawaranFoto;
 use App\Services\PenawaranService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -75,7 +80,17 @@ class ConsultationController extends Controller
         PenawaranService $service,
     ): RedirectResponse {
         $validated = $request->validate([
+            'judul' => ['nullable', 'string', 'max:190'],
+            'pemahaman' => ['nullable', 'string', 'max:5000'],
             'catatan_admin' => ['nullable', 'string', 'max:5000'],
+            'cakupan_termasuk' => ['nullable', 'string', 'max:5000'],
+            'cakupan_tidak' => ['nullable', 'string', 'max:5000'],
+            'keselamatan' => ['nullable', 'string', 'max:5000'],
+            'syarat' => ['nullable', 'string', 'max:5000'],
+            'berlaku_hari' => ['nullable', 'integer', 'min:1', 'max:365'],
+            'days' => ['nullable', 'array'],
+            'days.*.judul' => ['nullable', 'string', 'max:60'],
+            'days.*.isi' => ['nullable', 'string', 'max:5000'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.nama_item' => ['required', 'string', 'max:190'],
             'items.*.deskripsi' => ['nullable', 'string', 'max:2000'],
@@ -102,10 +117,32 @@ class ConsultationController extends Controller
                 'asal' => 'manual',
             ])->all(),
             $validated['catatan_admin'] ?? null,
+            [
+                'judul' => $validated['judul'] ?? null,
+                'pemahaman' => $validated['pemahaman'] ?? null,
+                'cakupan_termasuk' => $validated['cakupan_termasuk'] ?? null,
+                'cakupan_tidak' => $validated['cakupan_tidak'] ?? null,
+                'keselamatan' => $validated['keselamatan'] ?? null,
+                'syarat' => $validated['syarat'] ?? null,
+                'berlaku_hari' => isset($validated['berlaku_hari']) ? (int) $validated['berlaku_hari'] : null,
+                'days' => $validated['days'] ?? [],
+            ],
         );
 
         return to_route('admin.consultations.show', $consultation)
             ->with('status', 'Draf penawaran versi '.$offer->versi.' berhasil dibuat.');
+    }
+
+    public function newOfferVersion(
+        Consultation $consultation,
+        Penawaran $offer,
+        PenawaranService $service,
+    ): RedirectResponse {
+        abort_unless($offer->id_konsultasi === $consultation->getKey(), 404);
+        $newOffer = $service->buatVersiBaru($offer);
+
+        return to_route('admin.consultations.show', $consultation)
+            ->with('status', 'Draf penawaran versi '.$newOffer->versi.' berhasil dibuat dari versi sebelumnya.');
     }
 
     public function sendOffer(
@@ -118,6 +155,85 @@ class ConsultationController extends Controller
 
         return to_route('admin.consultations.show', $consultation)
             ->with('status', 'Penawaran berhasil dikirim kepada klien.');
+    }
+
+    public function downloadPdf(Consultation $consultation, Penawaran $offer): Response
+    {
+        abort_unless($offer->id_konsultasi === $consultation->getKey(), 404);
+        $offer->load(['consultation', 'details', 'days', 'photos']);
+        $pdf = Pdf::loadView('pdf.proposal', ['offer' => $offer]);
+        $filename = 'Proposal-'.Str::slug($offer->judul ?: 'empirise').'-v'.$offer->versi.'.pdf';
+
+        return $pdf->download($filename);
+    }
+
+    public function previewProposal(Consultation $consultation, Penawaran $offer): View
+    {
+        abort_unless($offer->id_konsultasi === $consultation->getKey(), 404);
+        $offer->load(['consultation', 'details', 'days', 'photos']);
+
+        return view('pdf.proposal', ['offer' => $offer]);
+    }
+
+    public function uploadLogo(Request $request, Consultation $consultation, Penawaran $offer): RedirectResponse
+    {
+        abort_unless($offer->id_konsultasi === $consultation->getKey(), 404);
+        $request->validate([
+            'logo' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
+        ], [
+            'logo.required' => 'Pilih berkas logo untuk diunggah.',
+            'logo.image' => 'Berkas harus berupa gambar.',
+            'logo.max' => 'Ukuran logo maksimal 2MB.',
+        ]);
+
+        $path = $request->file('logo')->store('proposals/logos', 'public');
+        $offer->update(['logo_path' => $path]);
+
+        return to_route('admin.consultations.show', $consultation)
+            ->with('status', 'Logo klien berhasil diunggah untuk proposal ini.');
+    }
+
+    public function uploadPhoto(Request $request, Consultation $consultation, Penawaran $offer): RedirectResponse
+    {
+        abort_unless($offer->id_konsultasi === $consultation->getKey(), 404);
+        $validated = $request->validate([
+            'foto' => ['required', 'image', 'mimes:jpeg,png,jpg,webp', 'max:4096'],
+            'jenis' => ['required', Rule::in(['sampul', 'destinasi', 'galeri'])],
+            'nama_destinasi' => ['nullable', 'string', 'max:150'],
+            'keterangan' => ['nullable', 'string', 'max:200'],
+        ], [
+            'foto.required' => 'Pilih berkas foto untuk diunggah.',
+            'foto.max' => 'Ukuran foto maksimal 4MB.',
+            'jenis.in' => 'Jenis foto tidak valid.',
+        ]);
+
+        $path = $request->file('foto')->store('proposals/photos', 'public');
+        $urutan = $offer->photos()->count() + 1;
+
+        $offer->photos()->create([
+            'jenis' => $validated['jenis'],
+            'nama_destinasi' => $validated['nama_destinasi'] ?? null,
+            'keterangan' => $validated['keterangan'] ?? null,
+            'path' => $path,
+            'urutan' => $urutan,
+        ]);
+
+        return to_route('admin.consultations.show', $consultation)
+            ->with('status', 'Foto kegiatan / destinasi berhasil ditambahkan ke proposal.');
+    }
+
+    public function deletePhoto(Consultation $consultation, Penawaran $offer, PenawaranFoto $photo): RedirectResponse
+    {
+        abort_unless($offer->id_konsultasi === $consultation->getKey(), 404);
+        abort_unless($photo->id_penawaran === $offer->getKey(), 404);
+
+        if (Storage::disk('public')->exists($photo->path)) {
+            Storage::disk('public')->delete($photo->path);
+        }
+        $photo->delete();
+
+        return to_route('admin.consultations.show', $consultation)
+            ->with('status', 'Foto berhasil dihapus dari proposal.');
     }
 
     public function storeReply(

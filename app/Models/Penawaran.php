@@ -16,9 +16,16 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'versi',
     'status',
     'judul',
+    'pemahaman',
     'catatan_admin',
+    'cakupan_termasuk',
+    'cakupan_tidak',
+    'keselamatan',
+    'syarat',
     'catatan_klien',
     'total',
+    'berlaku_hari',
+    'logo_path',
     'dikirim_at',
     'ditanggapi_at',
     'disetujui_at',
@@ -34,6 +41,7 @@ class Penawaran extends Model
         return [
             'status' => PenawaranStatus::class,
             'total' => 'integer',
+            'berlaku_hari' => 'integer',
             'dikirim_at' => 'datetime',
             'ditanggapi_at' => 'datetime',
             'disetujui_at' => 'datetime',
@@ -48,6 +56,18 @@ class Penawaran extends Model
     public function details(): HasMany
     {
         return $this->hasMany(DetailPenawaran::class, 'id_penawaran', 'id_penawaran')
+            ->orderBy('urutan');
+    }
+
+    public function days(): HasMany
+    {
+        return $this->hasMany(PenawaranHari::class, 'id_penawaran', 'id_penawaran')
+            ->orderBy('urutan');
+    }
+
+    public function photos(): HasMany
+    {
+        return $this->hasMany(PenawaranFoto::class, 'id_penawaran', 'id_penawaran')
             ->orderBy('urutan');
     }
 

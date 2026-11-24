@@ -218,7 +218,7 @@ it('seeds the content currently displayed on the site and preserves admin edits 
     $seeder->run();
 
     expect(AdminContent::query()->where('jenis', 'destinasi')->count())->toBe(12)
-        ->and(AdminContent::query()->where('jenis', 'layanan')->count())->toBe(5)
+        ->and(AdminContent::query()->where('jenis', 'layanan')->count())->toBe(8)
         ->and($malang->fresh()->deskripsi)->toBe('Konten destinasi yang sudah diperbarui admin.')
         ->and(AdminContent::query()->where('jenis', 'klien')->count())->toBe(32)
         ->and(AdminContent::query()->where('jenis', 'testimoni')->count())->toBe(6)
